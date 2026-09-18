@@ -1,0 +1,1784 @@
+<!doctype html>
+<!--
+PRIVATE-SHARE BUILD / 私人分享版
+
+This browser-based implementation contains code structure and logic derived from
+battle-cats-rolls by Lin Jen-Shin (godfat):
+https://gitlab.com/godfat/battle-cats-rolls
+
+Original copyright notice:
+Copyright (c) 2018-2026 Lin Jen-Shin (godfat)
+
+Original project is licensed under the Apache License, Version 2.0.
+This file contains substantial modifications and a JavaScript/browser-only
+reimplementation, including UI changes, multi-table comparison, persistence,
+track highlighting and additional convenience features.
+
+This build is unofficial and intended for small-scale private sharing.
+The private-share label does not restrict rights granted by Apache-2.0.
+Battle Cats / 貓咪大戰爭 names, characters, trademarks and related game data
+remain the property of their respective rights holders. This tool is not
+endorsed by or affiliated with PONOS.
+-->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex" />
+<meta name="referrer" content="no-referrer" />
+<title>Battle Cats Seed Tracker · 私人分享版</title>
+<style>
+  :root{
+    --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
+    --accent:#2f6781;--accent2:#eef3f1;--table-line:#c9c8c1;
+    --rare:#fffefa;--supa-fest:#f4dfa0;--super:#e9c85f;--uber-fest:#f1b1a3;--uber:#e47d82;--legend-fest:#c8b7e7;--legend:#b783c5;
+    --danger:#ad5059;--ok:#4f7a68;--warn:#9b7440;--guaranteed:#d44f67;--shadow:0 8px 26px rgba(45,52,58,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;background:linear-gradient(180deg,#f6f4ef 0%,var(--bg) 100%);color:var(--text)}
+  .wrap{max-width:none;margin:0;padding:14px 14px 14px 0}
+  h1{font-size:28px;margin:0 0 6px}
+  .sub{color:var(--muted);margin:0 0 20px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:12px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  .panel{padding:16px;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;border-left:0;border-radius:0 16px 16px 0}
+  .section{margin-bottom:18px}.section:last-child{margin-bottom:0}
+  label{display:block;font-weight:700;font-size:14px;margin:0 0 7px}
+  input,textarea,button,select{font:inherit}
+  input[type=text],input[type=number],textarea,select{width:100%;border:1px solid #cfd6de;border-radius:10px;padding:10px 12px;background:#fff;color:var(--text);outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(31,111,235,.12)}
+  textarea{min-height:250px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.45}
+  select{min-height:43px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}
+  button:disabled{cursor:not-allowed;opacity:.55}
+  .primary{background:var(--accent);color:#fff}.secondary{background:#eef1f5;color:#344054}.danger{background:#fff1f0;color:var(--danger)}
+  .help{font-size:12px;color:var(--muted);line-height:1.55;margin-top:6px}
+  .sourceBox{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafbfc}
+  .sourceTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .sourceTitle{font-weight:800;font-size:13px}.sourceMeta{font-size:11px;color:var(--muted);line-height:1.55}
+  .status{padding:11px 12px;border-radius:10px;background:#f6f8fa;color:#475467;font-size:13px;line-height:1.5}
+  .status.ok{background:#ecfdf3;color:var(--ok)}.status.err{background:#fef3f2;color:var(--danger)}.status.warn{background:#fffaeb;color:var(--warn)}
+  .modeRow{display:flex;gap:8px;flex-wrap:wrap}
+  .mode{display:flex;align-items:center;gap:6px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:7px 10px;background:#fff;cursor:pointer}
+  .mode input{margin:0}
+  .check{display:flex;align-items:center;gap:8px;font-size:12px;color:#475467;margin-top:9px}.check input{margin:0}
+  .eventInfo{margin-top:8px;padding:9px 10px;border-radius:10px;background:var(--accent2);font-size:11px;line-height:1.55;color:#344054;display:none}
+  .guaranteedCell{min-width:230px;background:#fffaf0}.guaranteedBox{padding:8px 9px;border:1px solid #f7d9a7;border-radius:9px;background:#fff7e8;line-height:1.45}.guaranteedBox strong{color:#9a4d00}.guaranteedNone{color:#98a2b3;font-size:11px}.eventState{font-weight:800}.eventState.expired{color:#98a2b3}.eventState.current{color:#067647}.eventState.future{color:#1f6feb}
+  .result{overflow:hidden}
+  .resultHead{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+  .summary{font-size:13px;color:var(--muted);line-height:1.5}
+  .tableWrap{overflow:auto;max-height:calc(100vh - 270px);background:#fff}
+  .staggerCols{display:grid;grid-template-columns:36px minmax(106px,1.05fr) minmax(88px,.82fr) minmax(106px,1.05fr) minmax(88px,.82fr) 36px;min-width:500px}
+  .trackHeader{position:sticky;top:0;z-index:20;background:#f7f8fa;border:1px solid var(--table-line);border-bottom:0}
+  .trackHeader>div{padding:5px 4px;text-align:center;font-size:13px;letter-spacing:.01em;line-height:1.25;font-weight:650;color:#475467;border-right:1px solid var(--table-line)}
+  .trackHeader>div:last-child{border-right:0}
+  .trackGrid{display:grid;grid-template-columns:36px minmax(106px,1.05fr) minmax(88px,.82fr) minmax(106px,1.05fr) minmax(88px,.82fr) 36px;grid-auto-rows:27px;min-width:500px;position:relative;background:#fff;border-left:1px solid var(--table-line);border-top:1px solid var(--table-line)}
+  .gridCell{padding:2px 5px;border-right:1px solid var(--table-line);border-bottom:1px solid var(--table-line);background:#fffefa;overflow:hidden;vertical-align:middle}
+  .gridNo{display:flex;align-items:center;justify-content:center;padding:0 2px;font-size:14px;line-height:1.15;font-weight:550;color:var(--accent);background:#fffdf9;white-space:nowrap}
+  .gridResult,.gridGuaranteed{display:flex;flex-direction:column;justify-content:center}
+  .gridResult{padding:2px 5px;text-align:center}
+  .gridGuaranteed{background:#fffdf9;text-align:center}
+  /* Original battle-cats-rolls score highlighting. These bands show festival rarity upgrades. */
+  .gridResult.score-rare{background:var(--rare)}
+  .gridResult.score-supa-fest{background:var(--supa-fest)}
+  .gridResult.score-supa{background:var(--super)}
+  .gridResult.score-uber-fest{background:var(--uber-fest)}
+  .gridResult.score-uber{background:var(--uber)}
+  .gridResult.score-legend-fest{background:var(--legend-fest)}
+  .gridResult.score-legend{background:var(--legend)}
+  .gridBacktrack{display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;line-height:1.2;background:#fafbfc;border-right:1px solid var(--table-line);border-bottom:1px solid var(--table-line)}
+  .gridPast{opacity:.78}
+  .gridStart{box-shadow:inset 0 2px 0 #6c93af}
+  .gridEmpty{grid-column:1/7;padding:30px;text-align:center;color:#667085;border-right:1px solid var(--table-line);border-bottom:1px solid var(--table-line)}
+  .trackCell{min-width:0}.cat{font-weight:400;line-height:1.25}.catId{font-weight:400;color:#98a2b3;font-size:11px}
+  .meta{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;color:#667085;font-size:11px}
+  .badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-weight:800;font-size:10px;border:1px solid rgba(0,0,0,.06)}
+  .reroll{margin-top:2px;padding:0;font-size:12px;line-height:1.2}
+  .catSimple{font-size:15px;line-height:1.28;font-weight:500;color:#2f607f;letter-spacing:.01em}
+  .switchInfo{margin-top:3px;font-size:11.5px;line-height:1.25;color:#698095}
+  .guaranteedSimple{font-size:14.5px;line-height:1.22;font-weight:500;color:#2f607f}
+  .guaranteedSimple .target,.switchInfo .target,.guaranteedAlt .target{display:block;margin-top:2px;color:#74899b;font-size:11.5px;font-weight:500;line-height:1.15}
+  .guaranteedAlt{margin-top:3px;font-size:11.5px;line-height:1.22;color:#698095}
+  .gridGuaranteed:empty{background:#fffdf9}
+  .pickable{cursor:cell}
+  .rollLink{color:#2f607f;text-decoration:none;position:relative;z-index:2;transition:color .15s ease}
+  .rollLink:hover{color:#244b65;text-decoration:underline;text-underline-offset:2px}
+  .path-picked,.path-consecutive,.path-next{position:relative;overflow:hidden;isolation:isolate}
+  .path-picked::after,.path-consecutive::after,.path-next::after{content:"";position:absolute;inset:-1px;pointer-events:none;z-index:1}
+  .path-picked::after{background:rgba(72,91,108,.14)}
+  .path-consecutive::after{background:rgba(72,91,108,.30)}
+  .path-next::after{background:repeating-linear-gradient(90deg,rgba(72,91,108,.28) 5px,rgba(72,91,108,.28) 15px,rgba(72,91,108,.12) 15px,rgba(72,91,108,.12) 25px)}
+  .pathLegend{font-size:12px;color:var(--muted);margin-top:4px}
+  .now td{background:#eaf2ff;border-top:2px solid #8ab8ff;border-bottom:2px solid #8ab8ff}.past td{background:#fcfcfd}
+  .smallCode{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#f2f4f7;border-radius:6px;padding:1px 5px}
+  details{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fafbfc}details summary{cursor:pointer;font-weight:700;font-size:13px}
+  details pre{white-space:pre-wrap;font-size:11px;line-height:1.45;margin:10px 0 0;overflow-wrap:anywhere}
+  .footer{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.65}
+  .hidden{display:none!important}.loader{display:inline-block;width:12px;height:12px;border:2px solid #cfd6de;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:5px}@keyframes spin{to{transform:rotate(360deg)}}
+  .pageHeader{padding-left:16px;padding-right:8px}
+  .compareWorkspace{min-width:0}
+  .compareTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding-right:2px}
+  .compareTopTitle{font-size:14px;font-weight:800;color:#344054}
+  .compareTopHint{font-size:11px;color:var(--muted);margin-top:2px}
+  .addCompareBtn{background:#eef4f8;color:var(--accent);border:1px solid #c9d8e2;padding:8px 12px}
+  .comparePanels{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;overscroll-behavior-x:contain;padding:0 2px 10px 0;scrollbar-gutter:stable}
+  .comparisonCard{flex:0 0 clamp(520px,calc((100vw - 354px)/2),650px);min-width:500px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .compareCardTop{display:flex;align-items:center;gap:8px;padding:10px 12px 8px;border-bottom:1px solid var(--line);background:#fbfcfd}
+  .compareBadge{flex:0 0 auto;font-size:11px;font-weight:800;color:#667085;background:#eef1f5;border-radius:999px;padding:4px 7px}
+  .panelEventArea{flex:1;min-width:0}
+  .panelEventArea select{min-height:38px;padding:7px 34px 7px 10px;border-radius:8px;font-size:12px;font-weight:600}
+  .removeCompareBtn{flex:0 0 auto;width:30px;height:30px;padding:0;border-radius:8px;background:#f7f8fa;color:#7b8794;border:1px solid #dce1e7;font-size:18px;line-height:1}
+  .removeCompareBtn:hover{background:#fff0f0;color:#a85454}
+  .panelEventInfo{display:none;padding:7px 12px 8px;background:#f7fafc;border-bottom:1px solid var(--line);font-size:10.5px;line-height:1.45;color:#667085}
+  .comparisonCard .resultHead{padding:8px 12px}
+  .comparisonCard .summary{font-size:11px;line-height:1.35}
+  .comparisonCard .pathLegend{font-size:10.5px;margin-top:2px}
+  .comparisonCard .trackHeader>div{font-size:11.5px;padding:4px 2px}
+  .comparisonCard .gridNo{font-size:12px}
+  .comparisonCard .catSimple{font-size:13.5px}
+  .comparisonCard .guaranteedSimple{font-size:12.5px}
+  .comparisonCard .switchInfo,.comparisonCard .guaranteedAlt{font-size:10.5px}
+  .comparisonCard .guaranteedSimple .target,.comparisonCard .switchInfo .target,.comparisonCard .guaranteedAlt .target{font-size:10.5px}
+  .comparisonCard .gridCell{padding-left:3px;padding-right:3px}
+  @media(max-width:1000px){
+    .wrap{padding:10px 10px 10px 0}
+    .grid{grid-template-columns:285px minmax(0,1fr)}
+    .comparisonCard{flex-basis:520px}
+    h1{font-size:23px}
+  }
+  @media(max-width:720px){
+    .wrap{padding:10px}
+    .pageHeader{padding-left:0}
+    .grid{grid-template-columns:1fr}
+    .panel{position:static;max-height:none;border-left:1px solid var(--line);border-radius:16px}
+    .comparisonCard{flex-basis:500px}
+    .tableWrap{max-height:none}
+  }
+
+  /* v10 workspace layout */
+  html{scrollbar-width:thin;scrollbar-color:#bcc6cf transparent}
+  html::-webkit-scrollbar,.panel::-webkit-scrollbar,.comparePanels::-webkit-scrollbar,.tableWrap::-webkit-scrollbar,.eventPickerMenu::-webkit-scrollbar{width:7px;height:7px}
+  html::-webkit-scrollbar-track,.panel::-webkit-scrollbar-track,.comparePanels::-webkit-scrollbar-track,.tableWrap::-webkit-scrollbar-track,.eventPickerMenu::-webkit-scrollbar-track{background:transparent}
+  html::-webkit-scrollbar-thumb,.panel::-webkit-scrollbar-thumb,.comparePanels::-webkit-scrollbar-thumb,.tableWrap::-webkit-scrollbar-thumb,.eventPickerMenu::-webkit-scrollbar-thumb{background:#bcc6cf;border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+  html::-webkit-scrollbar-thumb:hover,.panel::-webkit-scrollbar-thumb:hover,.comparePanels::-webkit-scrollbar-thumb:hover,.tableWrap::-webkit-scrollbar-thumb:hover,.eventPickerMenu::-webkit-scrollbar-thumb:hover{background:#98a6b3;background-clip:padding-box}
+  .appBar{height:48px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.92);backdrop-filter:blur(12px);position:sticky;top:0;z-index:80}
+  .appTitle{font-size:15px;font-weight:760;color:#344054;letter-spacing:.01em}
+  .settingsToggle{display:inline-flex;align-items:center;gap:7px;background:#f4f6f8;color:#344054;border:1px solid #d8dee5;padding:7px 10px;border-radius:10px;font-size:12px}
+  .settingsToggle:hover{background:#eef2f5}
+  .wrap{padding-top:10px}
+  .grid.settingsCollapsed{grid-template-columns:minmax(0,1fr);gap:0}
+  .grid.settingsCollapsed>.panel{display:none}
+  .grid.settingsCollapsed .comparisonCard{flex:1 1 0;min-width:440px}
+  .grid.settingsCollapsed .comparePanels{gap:9px}
+  .panel{scrollbar-width:thin;scrollbar-color:#bdc7d0 transparent}
+  .panelCompactTitle{display:flex;align-items:center;justify-content:space-between;margin:-2px 0 12px;font-size:13px;font-weight:800;color:#475467}
+  .comparePanels,.tableWrap,.eventPickerMenu{scrollbar-width:thin;scrollbar-color:#bdc7d0 transparent}
+  .staggerCols,.trackGrid{min-width:440px}
+  .comparisonCard{min-width:440px;flex-basis:clamp(440px,calc((100vw - 354px)/2),620px)}
+  .compareCardTop{position:relative;overflow:visible}
+  .panelEventArea{position:relative;overflow:visible}
+  .nativeEventSelect{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important;padding:0!important;border:0!important}
+  .eventPickerButton{width:100%;min-height:38px;padding:7px 10px;background:#fff;color:#344054;border:1px solid #cfd6de;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;font-size:12px;font-weight:620;box-shadow:0 1px 2px rgba(16,24,40,.02)}
+  .eventPickerButton:hover{border-color:#b8c3cd;background:#fcfdfe}
+  .eventPickerButton[aria-expanded="true"]{border-color:#8ba9be;box-shadow:0 0 0 3px rgba(53,103,137,.10)}
+  .eventPickerLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .eventPickerChevron{flex:0 0 auto;color:#82909d;font-size:13px;transition:transform .16s ease}
+  .eventPickerButton[aria-expanded="true"] .eventPickerChevron{transform:rotate(180deg)}
+  .eventPickerMenu{display:none;position:fixed;left:0;top:0;width:320px;z-index:220;background:rgba(255,255,255,.98);border:1px solid #d4dbe2;border-radius:14px;box-shadow:0 16px 42px rgba(26,39,52,.16);max-height:min(58vh,520px);overflow:auto;overscroll-behavior:contain;padding:6px;scroll-snap-type:y proximity;backdrop-filter:blur(14px)}
+  .eventPickerMenu.open{display:block}
+  .eventGroup{padding:0 0 4px}
+  .eventGroup+.eventGroup{border-top:1px solid #e7ebef;margin-top:5px;padding-top:5px}
+  .eventGroupLabel{position:sticky;top:-6px;z-index:2;padding:8px 9px 6px;background:rgba(247,249,251,.96);backdrop-filter:blur(10px);font-size:11px;font-weight:800;letter-spacing:.04em;color:#7a8793;border-radius:8px;margin-bottom:3px}
+  .eventGroupLabel.future{color:#607f9b}.eventGroupLabel.current{color:#527865}.eventGroupLabel.expired{color:#8b9299}
+  .eventPickerItem{width:100%;display:block;text-align:left;border:0;background:transparent;color:#344054;border-radius:9px;padding:8px 9px;font-size:11.5px;font-weight:520;line-height:1.35;scroll-snap-align:center}
+  .eventPickerItem:hover{background:#f1f5f7}
+  .eventPickerItem.selected{background:#eaf1f5;color:#2f607f;font-weight:700}
+  .eventPickerItem.hasGuaranteed{color:var(--guaranteed);font-weight:720}
+  .eventPickerItem.hasGuaranteed:hover{background:#fff0f2;color:#c43e58}
+  .eventPickerItem.hasGuaranteed.selected{background:#fdebed;color:#bd3852}
+  .eventPickerButton.hasGuaranteed .eventPickerLabel{color:var(--guaranteed);font-weight:760}
+  .catInfoHost{position:relative;padding-right:22px}
+  .catInfoLink{position:absolute;right:3px;bottom:2px;width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(47,103,129,.22);border-radius:5px;background:rgba(255,255,255,.72);color:#5f7788;text-decoration:none;opacity:.82;transition:all .14s ease;z-index:4}
+  .catInfoLink:hover{opacity:1;color:#234f69;background:#fff;border-color:rgba(47,103,129,.46);transform:translateY(-1px)}
+  .catInfoLink svg{width:10px;height:10px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+  .eventPickerEmpty{padding:18px 12px;text-align:center;color:#8a96a2;font-size:12px}
+  .compareTop{padding:0 2px}
+  .compareTopHint{display:none}
+  .panelEventInfo,.resultHead{display:none!important}
+  .status{font-size:12px;padding:9px 10px}
+  .sourceBox{padding:10px}.sourceMeta{font-size:10.5px}
+  .section{margin-bottom:14px}
+  .help,.footer{display:none!important}
+  @media(min-width:1200px){.grid.settingsCollapsed .comparisonCard{flex-basis:calc((100vw - 48px)/3)}}
+  @media(max-width:720px){
+    .appBar{height:46px;padding:0 9px}
+    .wrap{padding:8px}
+    .grid.settingsCollapsed>.panel{display:none}
+    .grid:not(.settingsCollapsed)>.panel{display:block}
+    .comparisonCard,.grid.settingsCollapsed .comparisonCard{min-width:440px;flex-basis:440px}
+    .eventPickerMenu{max-height:68vh;border-radius:18px;padding:8px}
+    .eventPickerItem{padding:11px 10px;font-size:12px}
+  }
+
+
+  /* v11 spacing, typography, single-table width and cross-banner warnings */
+  .wrap{padding:10px 14px 16px}
+  .panel{border-left:1px solid var(--line);border-radius:16px}
+  .compareWorkspace{min-width:0;padding-right:0}
+  .comparePanels{padding:0 0 10px;gap:12px}
+  .comparisonCard .trackHeader>div{font-size:12.8px;padding:5px 3px}
+  .comparisonCard .gridNo{font-size:13.5px}
+  .comparisonCard .catSimple{font-size:15.5px;line-height:1.32}
+  .comparisonCard .guaranteedSimple{font-size:14px;line-height:1.28}
+  .comparisonCard .switchInfo,.comparisonCard .guaranteedAlt{font-size:11.5px;line-height:1.28}
+  .comparisonCard .guaranteedSimple .target,.comparisonCard .switchInfo .target,.comparisonCard .guaranteedAlt .target{font-size:11.5px}
+  .eventPickerButton{font-size:12.8px}
+  .eventPickerItem{font-size:12.2px;line-height:1.4}
+  .compareBadge{font-size:11.5px}
+  .comparePanels.singlePanel{overflow-x:visible}
+  .comparePanels.singlePanel .comparisonCard,
+  .grid.settingsCollapsed .comparePanels.singlePanel .comparisonCard{
+    flex:0 1 680px;width:min(680px,100%);max-width:680px;min-width:440px
+  }
+  .crossPanelWarning{margin-top:4px;padding-top:4px;border-top:1px dashed rgba(53,103,137,.22);font-size:10.8px;line-height:1.32;color:#7b6470;text-align:left}
+  .crossPanelWarningLine+.crossPanelWarningLine{margin-top:2px}
+  .crossPanelWarning .warnIcon{font-size:10px;margin-right:3px;color:#9a7542}
+  .eventGroupDivider{height:10px;margin:2px 5px 4px;border-top:1px solid #e5eaef;pointer-events:none;user-select:none}
+  .eventGroup+.eventGroup{border-top:0;margin-top:0;padding-top:0}
+  .eventGroupLabel{margin-top:0}
+  .eventPickerMenu{scrollbar-width:thin;scrollbar-color:rgba(111,126,140,.52) transparent}
+  .eventPickerMenu::-webkit-scrollbar{width:5px;height:5px}
+  .eventPickerMenu::-webkit-scrollbar-track{background:transparent;margin:8px 0}
+  .eventPickerMenu::-webkit-scrollbar-thumb{background:rgba(111,126,140,.46);border-radius:999px;border:0}
+  .eventPickerMenu::-webkit-scrollbar-thumb:hover{background:rgba(86,102,116,.66)}
+  @media(max-width:1000px){.wrap{padding:10px 12px 14px}}
+  @media(max-width:720px){
+    .wrap{padding:8px 9px 12px}
+    .comparisonCard .catSimple{font-size:15px}
+    .comparePanels.singlePanel .comparisonCard,.grid.settingsCollapsed .comparePanels.singlePanel .comparisonCard{min-width:440px;max-width:620px}
+  }
+
+
+  /* v13 compact panel labels + adaptive dense-cell typography */
+  .compareBadge{min-width:34px;text-align:center;padding:4px 8px}
+  .crossPanelWarning{margin-top:3px;padding-top:3px;font-size:10.6px;line-height:1.2;color:#806775;border-top:1px dashed rgba(53,103,137,.20)}
+  .crossPanelWarningLine{font-weight:560;letter-spacing:.005em}
+  .crossPanelWarningLine+.crossPanelWarningLine{margin-top:1px}
+  .crossPanelWarning .warnIcon{display:none!important}
+  .gridCell{--fit-scale:1}
+  .gridCell .catSimple{font-size:calc(15.5px * var(--fit-scale))!important;line-height:1.22!important}
+  .gridCell .guaranteedSimple{font-size:calc(14px * var(--fit-scale))!important;line-height:1.18!important}
+  .gridCell .switchInfo,.gridCell .guaranteedAlt{font-size:calc(11.5px * var(--fit-scale))!important;line-height:1.16!important}
+  .gridCell .guaranteedSimple .target,.gridCell .switchInfo .target,.gridCell .guaranteedAlt .target{font-size:calc(11.5px * var(--fit-scale))!important;line-height:1.12!important}
+  .gridCell .crossPanelWarning{font-size:calc(10.6px * var(--fit-scale))!important;line-height:1.16!important}
+  .gridCell.autoFitDense{padding-top:1px!important;padding-bottom:1px!important}
+  .gridCell.autoFitDense .catInfoHost{padding-right:19px}
+  .gridCell.autoFitDense .catInfoLink{width:15px;height:15px;right:2px;bottom:1px}
+  @media(max-width:720px){
+    .gridCell .catSimple{font-size:calc(15px * var(--fit-scale))!important}
+  }
+
+
+  /* v14: center table headers and cross-table notices both horizontally and vertically */
+  .trackHeader>div{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+  }
+  .crossPanelWarning{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    width:100%;
+  }
+  .crossPanelWarningLine{
+    width:100%;
+    text-align:center!important;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .appSpacer{flex:1}
+  .privateBadge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #d7dce2;border-radius:999px;background:#f7f8fa;color:#5c6672;font-size:11px;font-weight:700;white-space:nowrap}
+  .licenseDetails{position:relative;margin:0}
+  .licenseDetails>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;padding:6px 9px;border:1px solid #d7dce2;border-radius:9px;background:#fff;color:#52606d;font-size:11px;font-weight:700;user-select:none}
+  .licenseDetails>summary::-webkit-details-marker{display:none}
+  .licenseDetails[open]>summary{background:#f4f6f8}
+  .licensePopover{position:absolute;right:0;top:38px;width:min(560px,calc(100vw - 24px));max-height:min(70vh,620px);overflow:auto;padding:14px;background:#fffdf9;border:1px solid #d7dce2;border-radius:14px;box-shadow:0 16px 44px rgba(43,50,58,.18);z-index:120;color:#364152}
+  .licensePopover h3{margin:0 0 8px;font-size:15px;color:#27343d}
+  .licensePopover p{margin:7px 0;font-size:12px;line-height:1.6}
+  .licensePopover a{color:var(--accent);text-decoration:none}
+  .licensePopover a:hover{text-decoration:underline}
+  .licensePopover details{margin-top:10px;border-top:1px solid #ece9e2;padding-top:9px}
+  .licensePopover details>summary{cursor:pointer;font-size:12px;font-weight:750;color:#465461}
+  .licenseText{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;line-height:1.45;color:#59636f;background:#f7f8fa;border:1px solid #e0e4e8;border-radius:10px;padding:10px;margin-top:8px;max-height:340px;overflow:auto}
+  .privateNote{margin:12px 14px 4px;padding:8px 10px;border:1px solid #e4e0d8;border-radius:10px;background:rgba(255,253,249,.82);color:#79818a;font-size:10.5px;line-height:1.45;text-align:center}
+  @media (max-width:760px){.privateBadge{display:none}.licenseDetails>summary{padding:6px 8px}.licensePopover{position:fixed;right:10px;left:10px;top:54px;width:auto;max-height:72vh}}
+
+</style>
+</head>
+<body>
+<div class="appBar">
+  <button class="settingsToggle" id="settingsToggle" type="button" aria-expanded="true">☰ <span>隱藏設定</span></button>
+  <div class="appTitle">Battle Cats Seed Tracker</div>
+  <span class="privateBadge">私人分享版 · 非官方</span>
+  <div class="appSpacer"></div>
+  <details class="licenseDetails">
+    <summary>來源與授權</summary>
+    <div class="licensePopover">
+      <h3>來源與授權</h3>
+      <p>本工具是私人分享用的非官方修改版，部分程式結構與抽卡邏輯源自 <a href="https://gitlab.com/godfat/battle-cats-rolls" target="_blank" rel="noopener noreferrer">battle-cats-rolls</a>。</p>
+      <p><strong>原作者：</strong>Lin Jen-Shin (godfat) · Copyright © 2018–2026<br><strong>原專案授權：</strong>Apache License 2.0</p>
+      <p>此檔案包含 JavaScript／瀏覽器化重寫、介面設計、多表比較、設定保存、路徑標記等修改。這個「私人分享版」標示只描述本版本的使用情境，不改變 Apache-2.0 原本授予的權利。</p>
+      <p>《貓咪大戰爭》名稱、角色、商標與相關遊戲資料之權利歸各自權利人所有。本工具與 PONOS 無隸屬、授權或背書關係。</p>
+      <details>
+        <summary>查看 Apache License 2.0 全文</summary>
+        <pre class="licenseText">
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+</pre>
+      </details>
+    </div>
+  </details>
+</div>
+<div class="wrap">
+  <div class="grid" id="appGrid">
+    <aside class="card panel">
+      <div class="panelCompactTitle"><span>設定</span></div>
+      <div class="section sourceBox">
+        <div class="sourceTop">
+          <div class="sourceTitle">台版資料來源</div>
+          <button class="secondary" id="updateDataBtn">更新 GitLab 資料</button>
+        </div>
+        <div id="dataMeta" class="sourceMeta">尚未載入。第一次使用請按「更新 GitLab 資料」。</div>
+      </div>
+
+      <div class="section">
+        <label>資料模式</label>
+        <div class="modeRow">
+          <label class="mode"><input type="radio" name="dataMode" value="gitlab" checked> GitLab 自動資料</label>
+          <label class="mode"><input type="radio" name="dataMode" value="manual"> 手動卡池</label>
+        </div>
+      </div>
+
+      <div id="gitlabPanel">
+        <div class="section">
+          <label for="eventSearch">活動篩選</label>
+          <input id="eventSearch" type="text" placeholder="搜尋活動名稱、Gacha ID、日期…" />
+          <label class="check"><input id="activeOnly" type="checkbox"> 只顯示尚未結束的活動</label>
+        </div>
+      </div>
+
+      <div id="manualPanel" class="hidden">
+        <div class="section">
+          <label for="poolInput">手動卡池資料</label>
+          <textarea id="poolInput" spellcheck="false"></textarea>
+        </div>
+        <div class="section btns">
+          <button class="secondary" id="sampleBtn">載入範例</button>
+          <button class="secondary" id="saveManualBtn">儲存手動資料</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <label for="seedInput">Seed</label>
+        <input id="seedInput" type="text" inputmode="numeric" value="373531645" placeholder="0 ~ 4294967295" />
+      </div>
+
+      <div class="section row2">
+        <div><label for="pastInput">過去位數</label><input id="pastInput" type="number" min="0" max="200" value="10" /></div>
+        <div><label for="futureInput">未來位數</label><input id="futureInput" type="number" min="1" max="1000" value="100" /></div>
+      </div>
+
+      <div class="section btns"><button class="primary" id="calcBtn">開始推算</button></div>
+      <div id="status" class="status">準備就緒。</div>
+
+    </aside>
+
+    <main class="compareWorkspace">
+      <div class="compareTop">
+        <div>
+          <div class="compareTopTitle">活動比較</div>
+        </div>
+        <button class="addCompareBtn" id="addCompareBtn">＋ 新增比較表</button>
+      </div>
+      <div id="comparePanels" class="comparePanels"></div>
+    </main>
+  </div>
+</div>
+<div class="privateNote">私人分享版 · 非官方工具 · 請保留「來源與授權」資訊。此頁已加入 noindex / nofollow，但真正的私人存取仍應由你的伺服器權限、密碼或存取控管負責。</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const U32 = 0x100000000;
+  const BASE = 10000;
+  const DATA_CACHE_KEY = 'battle-cats-tw-reduced-v5';
+  const MANUAL_CACHE_KEY = 'battle-cats-manual-pool-v2';
+  const RANGE_PREF_KEY = 'battle-cats-range-prefs-v1';
+  const SESSION_PREF_KEY = 'battle-cats-session-prefs-v1';
+  const DATA_URLS = [
+    'https://gitlab.com/godfat/battle-cats-rolls/-/raw/master/build/bc-tw.yaml',
+    'https://gitlab.com/api/v4/projects/godfat%2Fbattle-cats-rolls/repository/files/build%2Fbc-tw.yaml/raw?ref=master'
+  ];
+
+  const $ = id => document.getElementById(id);
+  const seedInput = $('seedInput'), pastInput = $('pastInput'), futureInput = $('futureInput');
+  const eventSearch = $('eventSearch'), activeOnly = $('activeOnly');
+  const poolInput = $('poolInput'), statusEl = $('status');
+  const updateDataBtn = $('updateDataBtn'), dataMeta = $('dataMeta'), calcBtn = $('calcBtn');
+  const gitlabPanel = $('gitlabPanel'), manualPanel = $('manualPanel');
+  const comparePanelsEl = $('comparePanels'), addCompareBtn = $('addCompareBtn');
+  const appGrid = $('appGrid'), settingsToggle = $('settingsToggle');
+
+  let battleData = null;
+  let visibleEvents = [];
+  let resultBody = null, summaryEl = null;
+  let currentRows = [];
+  let currentGraph = [];
+  let currentPool = null;
+  let currentSeed = 0;
+  let currentPast = 0;
+  let currentFuture = 0;
+  let currentLastCatId = null;
+  let panelSeq = 0;
+  const MAX_PANELS = 3;
+  const panelStates = [];
+
+  const sampleData = `# 示範資料，不是真實卡池\nrates=7000,2500,500,0\nrare=稀有A|稀有B|稀有C|稀有D|稀有E|稀有F\nsuper=激稀有A|激稀有B|激稀有C\nuber=超激稀有A|超激稀有B\nlegend=傳說稀有A`;
+
+  function setStatus(message, type='') {
+    statusEl.innerHTML = message;
+    statusEl.className = 'status' + (type ? ' ' + type : '');
+  }
+  function storageGet(key){ try { return localStorage.getItem(key); } catch (_) { return null; } }
+  function storageSet(key,value){ try { localStorage.setItem(key,value); return true; } catch (_) { return false; } }
+  function loadRangePrefs(){
+    try{
+      const raw=storageGet(RANGE_PREF_KEY); if(!raw) return;
+      const v=JSON.parse(raw);
+      if(Number.isInteger(v?.past)&&v.past>=0&&v.past<=200) pastInput.value=String(v.past);
+      if(Number.isInteger(v?.future)&&v.future>=1&&v.future<=1000) futureInput.value=String(v.future);
+    }catch(_){ }
+  }
+  function saveRangePrefs(){
+    const p=Number(pastInput.value), f=Number(futureInput.value);
+    if(Number.isInteger(p)&&p>=0&&p<=200&&Number.isInteger(f)&&f>=1&&f<=1000){
+      storageSet(RANGE_PREF_KEY,JSON.stringify({past:p,future:f}));
+    }
+  }
+  function loadSessionPrefs(){
+    try{
+      const raw=storageGet(SESSION_PREF_KEY);
+      if(!raw) return {seed:'373531645',lastCatId:null,eventKeys:[]};
+      const v=JSON.parse(raw);
+      const seed=(typeof v?.seed==='string' && /^\d+$/.test(v.seed) && Number(v.seed)>=0 && Number(v.seed)<U32) ? v.seed : '373531645';
+      const eventKeys=Array.isArray(v?.eventKeys) ? v.eventKeys.slice(0,MAX_PANELS).map(x=>String(x||'')) : [];
+      const lastCatId=(v?.lastCatId==null || v.lastCatId==='') ? null : String(v.lastCatId);
+      return {seed,lastCatId,eventKeys};
+    }catch(_){ return {seed:'373531645',lastCatId:null,eventKeys:[]}; }
+  }
+  function saveSessionPrefs(){
+    const raw=seedInput.value.trim();
+    const seed=(/^\d+$/.test(raw) && Number(raw)>=0 && Number(raw)<U32) ? raw : '373531645';
+    const eventKeys=panelStates.map(p=>{
+      const selected=String(p.eventSelect?.value || '');
+      const validSelected=!!battleData?.events?.some(e=>e.key===selected);
+      return String((validSelected ? selected : '') || p.preferredKey || '');
+    }).slice(0,MAX_PANELS);
+    storageSet(SESSION_PREF_KEY,JSON.stringify({seed,lastCatId:currentLastCatId,eventKeys}));
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function u32(n) { return n >>> 0; }
+  function xorLeft(x,bits){ return u32(u32(x) ^ u32(u32(x) << bits)); }
+  function xorRight(x,bits){ return u32(u32(x) ^ (u32(x) >>> bits)); }
+  function advanceSeed(seed){ let x=u32(seed); x=xorLeft(x,13); x=xorRight(x,17); x=xorLeft(x,15); return u32(x); }
+  function retreatSeed(seed){ let x=u32(seed); x=xorLeft(x,15); x=xorLeft(x,30); x=xorRight(x,17); x=xorLeft(x,13); x=xorLeft(x,26); return u32(x); }
+  function moveSeed(seed,steps){ let x=u32(seed); if(steps>=0){for(let i=0;i<steps;i++)x=advanceSeed(x);}else{for(let i=0;i<-steps;i++)x=retreatSeed(x);}return x; }
+
+  function parseYamlScalar(v) {
+    const s = String(v ?? '').trim();
+    if (!s) return '';
+    if (s.startsWith('"') && s.endsWith('"')) {
+      try { return JSON.parse(s); } catch (_) { return s.slice(1,-1); }
+    }
+    if (s.startsWith("'") && s.endsWith("'")) return s.slice(1,-1).replace(/''/g,"'");
+    if (s === 'true') return true;
+    if (s === 'false') return false;
+    if (s === 'null' || s === '~') return null;
+    if (/^-?\d+$/.test(s)) return Number(s);
+    return s;
+  }
+
+  function parseFlowArray(text) {
+    const s = String(text).trim();
+    if (!s.startsWith('[') || !s.endsWith(']')) return [];
+    const body = s.slice(1,-1);
+    const out=[]; let token=''; let quote=null; let escNext=false; let depth=0;
+    for (let i=0;i<body.length;i++) {
+      const ch=body[i];
+      if (escNext){ token+=ch; escNext=false; continue; }
+      if (quote) {
+        token+=ch;
+        if (quote==='"' && ch==='\\'){ escNext=true; continue; }
+        if (ch===quote) quote=null;
+        continue;
+      }
+      if (ch==='"' || ch==="'"){ quote=ch; token+=ch; continue; }
+      if (ch==='[' || ch==='{') depth++;
+      if (ch===']' || ch==='}') depth--;
+      if (ch===',' && depth===0){ out.push(parseYamlScalar(token)); token=''; }
+      else token+=ch;
+    }
+    if (token.trim() || body.endsWith(',')) out.push(parseYamlScalar(token));
+    return out;
+  }
+
+  function parseNumberArray(text) {
+    const m = String(text).match(/-?\d+/g);
+    return m ? m.map(Number) : [];
+  }
+
+  // Specialized parser for build/bc-tw.yaml. It intentionally reads only the fields this static tracker needs.
+  function parseBattleCatsYaml(text) {
+    const cats = {}, gacha = {}, events = {};
+    const lines = text.split(/\r?\n/);
+    let section = '', currentCat = null, currentGacha = null, currentEvent = null;
+
+    for (const line of lines) {
+      if (line === 'cats:'){ section='cats'; currentCat=currentGacha=currentEvent=null; continue; }
+      if (line === 'gacha:'){ section='gacha'; currentCat=currentGacha=currentEvent=null; continue; }
+      if (line === 'events:'){ section='events'; currentCat=currentGacha=currentEvent=null; continue; }
+
+      let m;
+      if (section === 'cats') {
+        if ((m=line.match(/^  (-?\d+):\s*$/))) {
+          currentCat=Number(m[1]); cats[currentCat]={id:currentCat,name:String(currentCat),rarity:null}; continue;
+        }
+        if (currentCat == null) continue;
+        if ((m=line.match(/^    name:\s*(\[.*\])\s*$/))) {
+          const names=parseFlowArray(m[1]); cats[currentCat].name=String(names[0] ?? currentCat); continue;
+        }
+        if ((m=line.match(/^    rarity:\s*(-?\d+)\s*$/))) { cats[currentCat].rarity=Number(m[1]); continue; }
+      }
+
+      if (section === 'gacha') {
+        if ((m=line.match(/^  (-?\d+):\s*$/))) {
+          currentGacha=Number(m[1]); gacha[currentGacha]={id:currentGacha,cats:[],seriesId:null,name:'',rate:''}; continue;
+        }
+        if (currentGacha == null) continue;
+        if ((m=line.match(/^    cats:\s*(\[.*\])\s*$/))) { gacha[currentGacha].cats=parseNumberArray(m[1]); continue; }
+        if ((m=line.match(/^    series_id:\s*(-?\d+)\s*$/))) { gacha[currentGacha].seriesId=Number(m[1]); continue; }
+        if ((m=line.match(/^    name:\s*(.*)$/))) { gacha[currentGacha].name=String(parseYamlScalar(m[1])); continue; }
+        if ((m=line.match(/^    rate:\s*(.*)$/))) { gacha[currentGacha].rate=String(parseYamlScalar(m[1])); continue; }
+      }
+
+      if (section === 'events') {
+        if ((m=line.match(/^  ([^:\s]+):\s*$/))) {
+          currentEvent=m[1]; events[currentEvent]={key:currentEvent,start:'',end:'',name:'',id:null,rare:null,supa:null,uber:null,legend:null,guaranteed:false,stepUp:false,version:''}; continue;
+        }
+        if (!currentEvent) continue;
+        const e=events[currentEvent];
+        if ((m=line.match(/^    start_on:\s*(.*)$/))) { e.start=String(parseYamlScalar(m[1])); continue; }
+        if ((m=line.match(/^    end_on:\s*(.*)$/))) { e.end=String(parseYamlScalar(m[1])); continue; }
+        if ((m=line.match(/^    version:\s*(.*)$/))) { e.version=String(parseYamlScalar(m[1])); continue; }
+        if ((m=line.match(/^    name:\s*(.*)$/))) { e.name=String(parseYamlScalar(m[1])); continue; }
+        if ((m=line.match(/^    id:\s*(-?\d+)\s*$/))) { e.id=Number(m[1]); continue; }
+        if ((m=line.match(/^    rare:\s*(-?\d+)\s*$/))) { e.rare=Number(m[1]); continue; }
+        if ((m=line.match(/^    supa:\s*(-?\d+)\s*$/))) { e.supa=Number(m[1]); continue; }
+        if ((m=line.match(/^    uber:\s*(-?\d+)\s*$/))) { e.uber=Number(m[1]); continue; }
+        if ((m=line.match(/^    legend:\s*(-?\d+)\s*$/))) { e.legend=Number(m[1]); continue; }
+        if ((m=line.match(/^    guaranteed:\s*(.*)$/))) { e.guaranteed=Boolean(parseYamlScalar(m[1])); continue; }
+        if ((m=line.match(/^    step_up:\s*(.*)$/))) { e.stepUp=Boolean(parseYamlScalar(m[1])); continue; }
+      }
+    }
+
+    const cleanCats={};
+    for (const [id,c] of Object.entries(cats)) if (Number.isInteger(c.rarity)) cleanCats[id]=c;
+    const cleanGacha={};
+    for (const [id,g] of Object.entries(gacha)) if (Array.isArray(g.cats) && g.cats.length) cleanGacha[id]=g;
+    const cleanEvents=Object.values(events).filter(e => e.id != null && cleanGacha[e.id] && Number.isInteger(e.rare) && Number.isInteger(e.supa) && Number.isInteger(e.uber));
+    cleanEvents.sort((a,b) => (b.start || '').localeCompare(a.start || '') || b.key.localeCompare(a.key));
+
+    if (Object.keys(cleanCats).length < 100 || Object.keys(cleanGacha).length < 20 || cleanEvents.length < 20) {
+      throw new Error(`資料解析數量異常：cats=${Object.keys(cleanCats).length}, gacha=${Object.keys(cleanGacha).length}, events=${cleanEvents.length}`);
+    }
+    return {cats:cleanCats,gacha:cleanGacha,events:cleanEvents,loadedAt:new Date().toISOString()};
+  }
+
+  async function fetchTextWithFallback() {
+    let lastError=null;
+    for (const url of DATA_URLS) {
+      try {
+        const res=await fetch(url,{cache:'no-store',mode:'cors'});
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text=await res.text();
+        if (!text.includes('\ncats:') && !text.startsWith('---\ncats:')) throw new Error('回傳內容不像 bc-tw.yaml');
+        return {text,url};
+      } catch (e) { lastError=e; }
+    }
+    throw lastError || new Error('GitLab 資料下載失敗');
+  }
+
+  function compactForStorage(data) {
+    return JSON.stringify(data);
+  }
+
+  async function updateGitlabData() {
+    updateDataBtn.disabled=true; calcBtn.disabled=true;
+    setStatus('<span class="loader"></span>正在從 GitLab 下載並解析台版資料…');
+    try {
+      const {text,url}=await fetchTextWithFallback();
+      const parsed=parseBattleCatsYaml(text);
+      parsed.source=url;
+      battleData=parsed;
+      storageSet(DATA_CACHE_KEY,compactForStorage(parsed));
+      updateDataMeta();
+      renderEventOptions(true);
+      setStatus(`GitLab 資料更新完成：${Object.keys(parsed.cats).length} 角色、${Object.keys(parsed.gacha).length} 卡池、${parsed.events.length} 活動。`,'ok');
+    } catch (e) {
+      setStatus(`GitLab 更新失敗：${esc(e.message || e)}。${battleData?'目前仍保留本機快取資料。':'你仍可切換到「手動卡池」使用。'}`,'err');
+    } finally {
+      updateDataBtn.disabled=false; calcBtn.disabled=false;
+    }
+  }
+
+  function loadCachedData() {
+    try {
+      const raw=storageGet(DATA_CACHE_KEY);
+      if (!raw) return false;
+      const data=JSON.parse(raw);
+      if (!data || !data.cats || !data.gacha || !Array.isArray(data.events)) return false;
+      battleData=data; updateDataMeta(); renderEventOptions(true); return true;
+    } catch (_) { return false; }
+  }
+
+  function updateDataMeta() {
+    if (!battleData) { dataMeta.textContent='尚未載入。第一次使用請按「更新 GitLab 資料」。'; return; }
+    const when=battleData.loadedAt ? new Date(battleData.loadedAt).toLocaleString() : '未知';
+    const latestEnd=battleData.events.reduce((m,e)=>e.end && e.end>m?e.end:m,'');
+    dataMeta.innerHTML=`<b>${Object.keys(battleData.cats).length}</b> 角色 · <b>${Object.keys(battleData.gacha).length}</b> 卡池 · <b>${battleData.events.length}</b> 活動${latestEnd?` · 至 ${esc(latestEnd)}`:''}<br>${esc(when)}`;
+  }
+
+  function localDateString() {
+    const d=new Date(), y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // 「尚未結束」包含目前進行中與 GitLab 已公布、但尚未開始的未來活動。
+  // end_on 在原資料中視為活動結束界線，因此 today < end_on 時仍列入。
+  function isActiveEvent(e,today=localDateString()) {
+    if (!e.start) return false;
+    if (e.end) return today < e.end;
+    return e.start >= today;
+  }
+
+  function eventState(e,today=localDateString()) {
+    if (e.end && e.end <= today) return {key:'expired',label:'已過期'};
+    if (e.start && e.start > today) return {key:'future',label:'未開始'};
+    return {key:'current',label:'進行中'};
+  }
+
+  function eventLabel(e) {
+    const flags=[e.guaranteed?'11連必出':'',e.stepUp?'Step-up':''].filter(Boolean).join(' / ');
+    const shortName=(e.name || battleData?.gacha?.[e.id]?.name || '未命名').replace(/\s+/g,' ').trim();
+    const state=eventState(e).label;
+    return `[${state}] ${e.start || '?'} → ${e.end || '?'} ｜ ${shortName}${flags ? ' ['+flags+']' : ''}`;
+  }
+
+  function eventItemLabel(e) {
+    const flags=[e.guaranteed?'11連必出':'',e.stepUp?'Step-up':''].filter(Boolean).join(' / ');
+    const shortName=(e.name || battleData?.gacha?.[e.id]?.name || '未命名').replace(/\s+/g,' ').trim();
+    return `${e.start || '?'} → ${e.end || '?'} ｜ ${shortName}${flags ? ' ['+flags+']' : ''}`;
+  }
+
+  const EVENT_GROUPS=[
+    {key:'future',label:'未開始'},
+    {key:'current',label:'進行中'},
+    {key:'expired',label:'已過期'}
+  ];
+
+  function closeEventPickers(except=null){
+    for(const p of panelStates){
+      if(p===except) continue;
+      p.eventMenu?.classList.remove('open');
+      p.eventButton?.setAttribute('aria-expanded','false');
+    }
+  }
+
+  function positionEventMenu(panel){
+    if(!panel?.eventButton || !panel?.eventMenu) return;
+    const r=panel.eventButton.getBoundingClientRect();
+    const margin=10;
+    const width=Math.min(Math.max(r.width,320),Math.max(320,window.innerWidth-margin*2));
+    const left=Math.min(Math.max(margin,r.left),Math.max(margin,window.innerWidth-width-margin));
+    const maxH=Math.min(Math.round(window.innerHeight*0.58),520);
+    const below=window.innerHeight-r.bottom-margin;
+    panel.eventMenu.style.width=`${width}px`;
+    panel.eventMenu.style.left=`${left}px`;
+    panel.eventMenu.style.maxHeight=`${maxH}px`;
+    if(below>=Math.min(280,maxH)){
+      panel.eventMenu.style.top=`${Math.round(r.bottom+6)}px`;
+      panel.eventMenu.style.bottom='auto';
+    }else{
+      panel.eventMenu.style.top='auto';
+      panel.eventMenu.style.bottom=`${Math.round(window.innerHeight-r.top+6)}px`;
+    }
+  }
+
+  function updateEventPickerLabel(panel){
+    if(!panel?.eventButton || !panel?.eventLabel) return;
+    const e=getSelectedEventForPanel(panel);
+    panel.eventLabel.textContent=e ? eventItemLabel(e) : (battleData ? '選擇活動' : '載入資料中…');
+    panel.eventButton?.classList.toggle('hasGuaranteed',!!e?.guaranteed);
+    if(panel.eventMenu){
+      panel.eventMenu.querySelectorAll('.eventPickerItem').forEach(btn=>btn.classList.toggle('selected',btn.dataset.key===panel.eventSelect.value));
+    }
+  }
+
+  function renderEventPickerMenu(panel,list){
+    if(!panel?.eventMenu) return;
+    panel.eventMenu.innerHTML='';
+    if(!list.length){
+      panel.eventMenu.innerHTML='<div class="eventPickerEmpty">找不到符合的活動</div>';
+      updateEventPickerLabel(panel);
+      return;
+    }
+    let renderedGroups=0;
+    for(const def of EVENT_GROUPS){
+      const items=list.filter(e=>eventState(e).key===def.key);
+      if(!items.length) continue;
+      if(renderedGroups>0){
+        const divider=document.createElement('div');
+        divider.className='eventGroupDivider';
+        divider.setAttribute('aria-hidden','true');
+        panel.eventMenu.appendChild(divider);
+      }
+      const group=document.createElement('div');
+      group.className='eventGroup';
+      const title=document.createElement('div');
+      title.className=`eventGroupLabel ${def.key}`;
+      title.textContent=`${def.label} · ${items.length}`;
+      group.appendChild(title);
+      for(const e of items){
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='eventPickerItem' + (e.guaranteed ? ' hasGuaranteed' : '');
+        btn.dataset.key=e.key;
+        btn.textContent=eventItemLabel(e);
+        if(e.key===panel.eventSelect.value) btn.classList.add('selected');
+        group.appendChild(btn);
+      }
+      panel.eventMenu.appendChild(group);
+      renderedGroups++;
+    }
+    updateEventPickerLabel(panel);
+  }
+
+  function getFilteredEvents() {
+    if (!battleData) return [];
+    const q=eventSearch.value.trim().toLowerCase();
+    const onlyActive=activeOnly.checked;
+    const list=battleData.events.filter(e => {
+      if (onlyActive && !isActiveEvent(e)) return false;
+      if (!q) return true;
+      const hay=`${e.key} ${e.id} ${e.name} ${battleData.gacha[e.id]?.name || ''}`.toLowerCase();
+      return hay.includes(q);
+    });
+    visibleEvents=list;
+    return list;
+  }
+
+  function usedEventKeys(exceptPanel=null) {
+    return new Set(panelStates.filter(p=>p!==exceptPanel).map(p=>p.eventSelect?.value).filter(Boolean));
+  }
+
+  function getSelectedEventForPanel(panel) {
+    if (!battleData || !panel?.eventSelect?.value) return null;
+    return battleData.events.find(e=>e.key===panel.eventSelect.value) || null;
+  }
+
+  function updateEventInfoForPanel(panel) {
+    if (panel?.eventInfo) panel.eventInfo.style.display='none';
+    updateEventPickerLabel(panel);
+  }
+
+  function renderEventOptionsForPanel(panel,keepSelection=false,preferredKey='') {
+    const prev=preferredKey || panel.preferredKey || (keepSelection ? panel.eventSelect.value : '');
+    if (!battleData) {
+      panel.eventSelect.disabled=true;
+      panel.eventSelect.innerHTML='<option>請先載入 GitLab 資料</option>';
+      if(panel.eventButton) panel.eventButton.disabled=true;
+      renderEventPickerMenu(panel,[]);
+      return;
+    }
+    const list=getFilteredEvents();
+    panel.eventSelect.innerHTML='';
+    if (!list.length) {
+      const o=document.createElement('option');
+      o.textContent='找不到符合的活動';
+      o.value='';
+      panel.eventSelect.appendChild(o);
+      panel.eventSelect.disabled=true;
+      if(panel.eventButton) panel.eventButton.disabled=true;
+      renderEventPickerMenu(panel,[]);
+      return;
+    }
+    for(const def of EVENT_GROUPS){
+      const items=list.filter(e=>eventState(e).key===def.key);
+      if(!items.length) continue;
+      const og=document.createElement('optgroup');
+      og.label=`${def.label} · ${items.length}`;
+      for (const e of items) {
+        const o=document.createElement('option');
+        o.value=e.key;
+        o.textContent=eventItemLabel(e);
+        og.appendChild(o);
+      }
+      panel.eventSelect.appendChild(og);
+    }
+    panel.eventSelect.disabled=false;
+    if(panel.eventButton) panel.eventButton.disabled=false;
+    if (prev && list.some(e=>e.key===prev)) {
+      panel.eventSelect.value=prev;
+    } else {
+      const used=usedEventKeys(panel);
+      const unique=list.find(e=>!used.has(e.key));
+      panel.eventSelect.value=(unique || list[0]).key;
+    }
+    panel.preferredKey=panel.eventSelect.value || panel.preferredKey || '';
+    renderEventPickerMenu(panel,list);
+    updateEventInfoForPanel(panel);
+    saveSessionPrefs();
+  }
+
+  function renderEventOptions(keepSelection=false) {
+    for (const panel of panelStates) renderEventOptionsForPanel(panel,keepSelection);
+  }
+
+  function updatePanelNumbers() {
+    panelStates.forEach((panel,index)=>{
+      panel.index=index+1;
+      panel.badge.textContent=`表${index+1}`;
+      panel.removeBtn.title=`移除表${index+1}`;
+      panel.removeBtn.classList.toggle('hidden',panelStates.length===1);
+    });
+    comparePanelsEl.classList.toggle('singlePanel',panelStates.length===1);
+    comparePanelsEl.classList.toggle('multiPanel',panelStates.length>1);
+    addCompareBtn.disabled=panelStates.length>=MAX_PANELS;
+    addCompareBtn.textContent=panelStates.length>=MAX_PANELS?'最多 3 張比較表':'＋ 新增比較表';
+  }
+
+  function activatePanel(panel) {
+    resultBody=panel.resultBody;
+    summaryEl=panel.summary;
+    currentRows=panel.rows || [];
+    currentGraph=panel.graph || [];
+    currentPool=panel.pool || null;
+    currentSeed=panel.seed || 0;
+    currentPast=panel.past || 0;
+    currentFuture=panel.future || 0;
+  }
+
+  function createComparisonPanel(preferredKey='') {
+    if (panelStates.length>=MAX_PANELS) return null;
+    const id=++panelSeq;
+    const card=document.createElement('section');
+    card.className='comparisonCard';
+    card.dataset.panelId=String(id);
+    card.innerHTML=`
+      <div class="compareCardTop">
+        <span class="compareBadge">表</span>
+        <div class="panelEventArea">
+          <select class="panelEventSelect nativeEventSelect" aria-hidden="true" tabindex="-1"><option>請先載入 GitLab 資料</option></select>
+          <button class="eventPickerButton" type="button" aria-expanded="false"><span class="eventPickerLabel">載入資料中…</span><span class="eventPickerChevron">⌄</span></button>
+          <div class="eventPickerMenu" role="listbox"></div>
+        </div>
+        <button class="removeCompareBtn" type="button" title="移除此比較表">×</button>
+      </div>
+      <div class="panelEventInfo"></div>
+      <div class="panelSummary hidden" aria-hidden="true"></div>
+      <div class="tableWrap">
+        <div class="trackHeader staggerCols">
+          <div>No.</div><div>Result</div><div>Guaranteed</div><div>Alt. result</div><div>Alt. guaranteed</div><div>Alt. No.</div>
+        </div>
+        <div class="trackGrid panelResultBody"><div class="gridEmpty">尚未產生結果</div></div>
+      </div>`;
+    comparePanelsEl.appendChild(card);
+
+    const panel={
+      id,
+      el:card,
+      badge:card.querySelector('.compareBadge'),
+      eventArea:card.querySelector('.panelEventArea'),
+      eventSelect:card.querySelector('.panelEventSelect'),
+      eventButton:card.querySelector('.eventPickerButton'),
+      eventLabel:card.querySelector('.eventPickerLabel'),
+      eventMenu:card.querySelector('.eventPickerMenu'),
+      eventInfo:card.querySelector('.panelEventInfo'),
+      removeBtn:card.querySelector('.removeCompareBtn'),
+      summary:card.querySelector('.panelSummary'),
+      resultBody:card.querySelector('.panelResultBody'),
+      tableWrap:card.querySelector('.tableWrap'),
+      rows:[],graph:[],pool:null,seed:0,past:0,future:0,preferredKey:String(preferredKey||'')
+    };
+    panelStates.push(panel);
+    document.body.appendChild(panel.eventMenu);
+
+    panel.eventButton.addEventListener('click',(ev)=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      const willOpen=!panel.eventMenu.classList.contains('open');
+      closeEventPickers(panel);
+      panel.eventMenu.classList.toggle('open',willOpen);
+      panel.eventButton.setAttribute('aria-expanded',willOpen?'true':'false');
+      if(willOpen){
+        positionEventMenu(panel);
+        requestAnimationFrame(()=>panel.eventMenu.querySelector('.eventPickerItem.selected')?.scrollIntoView({block:'center'}));
+      }
+    });
+    panel.eventMenu.addEventListener('click',(ev)=>{
+      const item=ev.target.closest('.eventPickerItem');
+      if(!item) return;
+      ev.preventDefault();
+      panel.eventSelect.value=item.dataset.key;
+      panel.eventMenu.classList.remove('open');
+      panel.eventButton.setAttribute('aria-expanded','false');
+      panel.eventSelect.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+
+    panel.eventSelect.addEventListener('change',()=>{
+      panel.preferredKey=panel.eventSelect.value || '';
+      updateEventPickerLabel(panel);
+      updateEventInfoForPanel(panel);
+      saveSessionPrefs();
+      try { calculatePanel(panel,true); refreshCrossPanelWarnings(); }
+      catch(e) { panel.summary.textContent=`無法計算：${e.message||e}`; }
+    });
+    panel.removeBtn.addEventListener('click',()=>{
+      if (panelStates.length<=1) return;
+      const idx=panelStates.indexOf(panel);
+      if (idx>=0) panelStates.splice(idx,1);
+      card.remove();
+      panel.eventMenu?.remove();
+      updatePanelNumbers();
+      saveSessionPrefs();
+      refreshCrossPanelWarnings();
+    });
+    panel.resultBody.addEventListener('click',e=>handlePanelResultClick(panel,e));
+
+    renderEventOptionsForPanel(panel,false,preferredKey);
+    panel.eventArea.classList.toggle('hidden',currentMode()!=='gitlab');
+    updatePanelNumbers();
+    saveSessionPrefs();
+    return panel;
+  }
+
+  function addComparisonPanel() {
+    if (panelStates.length>=MAX_PANELS) return;
+    let preferred='';
+    if (battleData) {
+      const list=getFilteredEvents();
+      const used=usedEventKeys();
+      preferred=(list.find(e=>!used.has(e.key)) || list[0] || {}).key || '';
+    }
+    const panel=createComparisonPanel(preferred);
+    if (panel && battleData) {
+      try { calculatePanel(panel,true); refreshCrossPanelWarnings(); } catch (_) {}
+    }
+  }
+
+  function normalizeCat(v,rarity,index) {
+    if (typeof v==='object' && v!==null){ const name=String(v.name ?? v.label ?? v.id ?? `角色${index+1}`).trim(); return {id:String(v.id ?? `${rarity}:${name}`),name}; }
+    const name=String(v ?? '').trim(); return {id:`${rarity}:${name}`,name};
+  }
+  function normalizeArray(arr,rarity){ return Array.isArray(arr)?arr.map((x,i)=>normalizeCat(x,rarity,i)).filter(x=>x.name):[]; }
+
+  function parseSimple(text) {
+    const out={rates:null,rare:[],super:[],uber:[],legend:[]};
+    for (const raw of text.split(/\r?\n/)) {
+      const line=raw.trim(); if(!line || line.startsWith('#') || line.startsWith('//')) continue;
+      const idx=line.indexOf('='); if(idx<0) continue;
+      const key=line.slice(0,idx).trim().toLowerCase().replace(/[_\s-]/g,''); const val=line.slice(idx+1).trim();
+      if(key==='rates'||key==='rate'){
+        const nums=val.split(/[|,，\s]+/).filter(Boolean).map(Number);
+        if(nums.length!==4||nums.some(n=>!Number.isFinite(n)))throw new Error('rates 必須有 4 個數字，例如 rates=7000,2500,500,0');
+        out.rates={rare:nums[0],super:nums[1],uber:nums[2],legend:nums[3]};
+      } else {
+        const map={rare:'rare',super:'super',supa:'super',superrare:'super',uber:'uber',uberrare:'uber',legend:'legend',legendrare:'legend'};
+        if(map[key]) out[map[key]]=val?val.split('|').map(s=>s.trim()).filter(Boolean):[];
+      }
+    }
+    return out;
+  }
+
+  function parseManualPool(text) {
+    const trimmed=text.trim(); if(!trimmed) throw new Error('請先輸入手動卡池資料。');
+    let raw;
+    if(trimmed.startsWith('{')){ try{raw=JSON.parse(trimmed);}catch(e){throw new Error('JSON 格式錯誤：'+e.message);} }
+    else raw=parseSimple(trimmed);
+    const rr=raw.rates||raw.rate||{};
+    const rates={rare:Number(rr.rare??0),super:Number(rr.super??rr.supa??0),uber:Number(rr.uber??0),legend:Number(rr.legend??0)};
+    if(Object.values(rates).some(n=>!Number.isInteger(n)||n<0))throw new Error('rates 必須是 0 以上整數。');
+    if(rates.rare+rates.super+rates.uber+rates.legend!==BASE)throw new Error('rates 總和必須等於 10000。');
+    const pool={rates,rare:normalizeArray(raw.rare||[],'rare'),super:normalizeArray(raw.super||raw.supa||[],'super'),uber:normalizeArray(raw.uber||[],'uber'),legend:normalizeArray(raw.legend||[],'legend'),sourceLabel:'手動卡池'};
+    for(const r of ['rare','super','uber','legend'])if(rates[r]>0&&!pool[r].length)throw new Error(`${r} 機率大於 0，但沒有角色。`);
+    return pool;
+  }
+
+  function poolFromEvent(e) {
+    if (!battleData) throw new Error('尚未載入 GitLab 資料。');
+    if (!e) throw new Error('請選擇活動。');
+    const g=battleData.gacha[e.id]; if(!g) throw new Error(`找不到 Gacha #${e.id}。`);
+    const derivedLegend=BASE-e.rare-e.supa-e.uber;
+    const rates={rare:e.rare,super:e.supa,uber:e.uber,legend:Number.isInteger(e.legend)?e.legend:derivedLegend};
+    if(rates.legend<0 || rates.rare+rates.super+rates.uber+rates.legend!==BASE)throw new Error('活動機率資料異常。');
+    const pool={rates,rare:[],super:[],uber:[],legend:[],sourceLabel:`${e.key} / Gacha #${e.id}`,event:e};
+    const rarityKey={2:'rare',3:'super',4:'uber',5:'legend'};
+    for(const id of g.cats){
+      const c=battleData.cats[id]; if(!c) continue;
+      const key=rarityKey[c.rarity]; if(key) pool[key].push({id:String(id),name:c.name || String(id)});
+    }
+    for(const r of ['rare','super','uber','legend']) if(rates[r]>0&&!pool[r].length) throw new Error(`${r} 機率大於 0，但此卡池沒有解析到該稀有度角色。`);
+    return pool;
+  }
+
+  function currentMode(){ return document.querySelector('input[name="dataMode"]:checked')?.value || 'gitlab'; }
+  function getPoolForPanel(panel){ return currentMode()==='gitlab' ? poolFromEvent(getSelectedEventForPanel(panel)) : parseManualPool(poolInput.value); }
+
+  function rarityFromScore(score,rates){ const rs=rates.rare+rates.super; if(score<rates.rare)return'rare'; if(score<rs)return'super'; if(score<rs+rates.uber)return'uber'; return'legend'; }
+  // Exact default-site score bands from BattleCatsRolls::Cat#score_rarity_label.
+  // *_fest marks scores whose rarity is promoted on boosted-rate banners.
+  function scoreRarityLabel(score){
+    if(score==null || score<6470)return'rare';
+    if(score<6970)return'supa-fest';
+    if(score<9070)return'supa';
+    if(score<9470)return'uber-fest';
+    if(score<9940)return'uber';
+    if(score<9970)return'legend-fest';
+    return'legend';
+  }
+  function normalRarityFromScore(score){
+    if(score<6970)return'rare';
+    if(score<9470)return'super';
+    if(score<9970)return'uber';
+    return'legend';
+  }
+  function rarityRank(r){return({rare:0,super:1,uber:2,legend:3})[r]??-1;}
+  function upgradeTitle(cat){
+    if(!cat || cat.score==null)return'';
+    const normal=normalRarityFromScore(cat.score);
+    if(rarityRank(cat.rarity)>rarityRank(normal))return `祭典升級：${rarityLabel(normal)} → ${rarityLabel(cat.rarity)}`;
+    return '';
+  }
+  function catKey(cat){return cat?String(cat.id):'';}
+  function rollCat(raritySeed,slotSeed,pool){
+    const score=u32(raritySeed)%BASE, rarity=rarityFromScore(score,pool.rates), slots=pool[rarity];
+    if(!slots.length)return{id:'-1',name:'N/A',rarity,raritySeed:u32(raritySeed),slotSeed:u32(slotSeed),score,slot:null,next:null,rerolled:null,guaranteed:null};
+    const slot=u32(slotSeed)%slots.length, item=slots[slot];
+    return{id:item.id,name:item.name,rarity,raritySeed:u32(raritySeed),slotSeed:u32(slotSeed),score,slot,next:null,rerolled:null,guaranteed:null};
+  }
+  function forcedUber(slotSeed,pool){
+    const slots=pool.uber;
+    if(!slots.length)return{id:'-1',name:'N/A',rarity:'uber',slotSeed:u32(slotSeed),slot:null,next:null};
+    const slot=u32(slotSeed)%slots.length, item=slots[slot];
+    return{id:item.id,name:item.name,rarity:'uber',slotSeed:u32(slotSeed),slot,next:null};
+  }
+  function isRareDupe(cat,prev){return !!prev&&cat.rarity==='rare'&&catKey(cat)===catKey(prev)&&cat.id!=='-1';}
+  function rerollCat(cat,pool){
+    const all=pool[cat.rarity].slice(), duplicateCount=all.filter(x=>String(x.id)===String(cat.id)).length;
+    let working=all.slice(),nextSeed=u32(cat.slotSeed),slot=cat.slot;
+    for(let steps=1;steps<=duplicateCount;steps++){
+      nextSeed=advanceSeed(nextSeed); if(slot==null||slot<0||slot>=working.length)return null;
+      working.splice(slot,1); if(!working.length)return null; slot=nextSeed%working.length; const picked=working[slot];
+      if(String(picked.id)!==String(cat.id))return{id:picked.id,name:picked.name,rarity:cat.rarity,raritySeed:cat.raritySeed,score:cat.score,slotSeed:nextSeed,slot,steps,sequence:cat.sequence,track:cat.track,next:null,rerolled:null,guaranteed:null};
+    }
+    return null;
+  }
+  function nextIndexForReroll(trackIndex,steps){ return Math.floor((trackIndex+steps)/2)+1; }
+  function nextTrackForReroll(trackIndex,steps){ return (((trackIndex+steps-1)^1)&1); }
+  function rerollTarget(position,trackIndex,steps){ const offset=nextIndexForReroll(trackIndex,steps); const nextTrack=(nextTrackForReroll(trackIndex,steps)===0?'A':'B'); return{position:position+offset,track:nextTrack}; }
+  function makeRow(baseSeed,position,pool){
+    const s1=advanceSeed(baseSeed),s2=advanceSeed(s1),s3=advanceSeed(s2);
+    const a=rollCat(s1,s2,pool), b=rollCat(s2,s3,pool);
+    a.sequence=b.sequence=position; a.track=0; b.track=1;
+    return{position,baseSeed:u32(baseSeed),a,b};
+  }
+  function fillCatLinks(cat,lastCat,pool){
+    if(!cat)return;
+    if(isRareDupe(cat,lastCat)){
+      if(!cat.rerolled) cat.rerolled=rerollCat(cat,pool);
+      if(lastCat) lastCat.next=cat.rerolled;
+    } else if(lastCat) lastCat.next=cat;
+  }
+  function buildFutureGraph(inputSeed,count,pool,lastCatId=null){
+    const rows=[];
+    let base=u32(inputSeed);
+    // Original site keeps the clicked cat as `last` so 1A can correctly trigger a duplicate-Rare reroll.
+    let lastA=lastCatId!=null?{id:String(lastCatId),next:null}:null, lastB=null;
+    for(let p=1;p<=count;p++){
+      const row=makeRow(base,p,pool);
+      fillCatLinks(row.a,lastA,pool); fillCatLinks(row.b,lastB,pool);
+      rows.push(row); lastA=row.a; lastB=row.b; base=moveSeed(base,2);
+    }
+    // Equivalent to Gacha#finish_rerolled_links: connect each rerolled Rare back into the actual path.
+    for(let i=0;i<rows.length;i++){
+      for(const track of [0,1]){
+        const cat=track===0?rows[i].a:rows[i].b;
+        if(!cat.rerolled) continue;
+        const ni=i+nextIndexForReroll(track,cat.rerolled.steps), nt=nextTrackForReroll(track,cat.rerolled.steps);
+        const nr=rows[ni]; if(!nr) continue;
+        const nextCat=nt===0?nr.a:nr.b;
+        fillCatLinks(nextCat,cat.rerolled,pool);
+      }
+    }
+    return rows;
+  }
+  function followCat(cat,steps){ let cur=cat; for(let i=0;i<steps;i++){ if(!cur?.next)return null; cur=cur.next; } return cur; }
+  function fillGuaranteedForCat(cat,rows,guaranteedRolls,pool){
+    if(!cat || guaranteedRolls<=0)return;
+    const last=followCat(cat,guaranteedRolls-1); if(!last)return;
+    const nextIndex=last.sequence-(last.track^1); // Ruby cats.dig index; sequence is 1-based.
+    const nextTrack=last.track^1;
+    const nextRow=rows[nextIndex]; if(!nextRow)return;
+    const nextCat=nextTrack===0?nextRow.a:nextRow.b;
+    const seedRow=rows[last.sequence-1]; if(!seedRow)return;
+    const seedCat=last.track===0?seedRow.a:seedRow.b;
+    const g=forcedUber(seedCat.raritySeed,pool);
+    g.sequence=cat.sequence; g.track=cat.track; g.next=nextCat;
+    cat.guaranteed=g;
+  }
+  function finishGuaranteed(rows,pool){
+    const guaranteedRolls=pool.event?.guaranteed?11:(pool.event?.stepUp?15:0);
+    if(!guaranteedRolls)return guaranteedRolls;
+    for(const row of rows){
+      for(const cat of [row.a,row.b]){
+        fillGuaranteedForCat(cat,rows,guaranteedRolls,pool);
+        if(cat.rerolled) fillGuaranteedForCat(cat.rerolled,rows,guaranteedRolls,pool);
+      }
+    }
+    return guaranteedRolls;
+  }
+  function enrichPastDupes(row,prevA,prevB,pool){
+    if(isRareDupe(row.a,prevA)){row.a.reroll=rerollCat(row.a,pool);if(row.a.reroll)row.a.target=rerollTarget(row.position,0,row.a.reroll.steps);}
+    if(isRareDupe(row.b,prevB)){row.b.reroll=rerollCat(row.b,pool);if(row.b.reroll)row.b.target=rerollTarget(row.position,1,row.b.reroll.steps);}
+  }
+  function buildRows(inputSeed,past,future,pool,lastCatId=currentLastCatId){
+    const visible=[];
+    // Past is informational only. The user's actual last rolled cat/track is unknown, so it is not linked into 1A/1B.
+    if(past>0){
+      const firstPos=-past, firstBase=moveSeed(inputSeed,firstPos*2), hidden=makeRow(moveSeed(firstBase,-2),firstPos-1,pool);
+      let prevA=hidden.a,prevB=hidden.b,base=firstBase;
+      for(let p=firstPos;p<=-1;p++){
+        const row=makeRow(base,p,pool); enrichPastDupes(row,prevA,prevB,pool); visible.push(row); prevA=row.a;prevB=row.b;base=moveSeed(base,2);
+      }
+    }
+    const guaranteedRolls=pool.event?.guaranteed?11:(pool.event?.stepUp?15:0);
+    // Extra hidden rows are required so a guaranteed result is available even near the bottom of the visible 100 rows.
+    const graph=buildFutureGraph(inputSeed,future+guaranteedRolls+24,pool,lastCatId);
+    finishGuaranteed(graph,pool);
+    for(let i=0;i<future;i++){
+      const row=graph[i];
+      for(const [cat,track] of [[row.a,0],[row.b,1]]) if(cat.rerolled) cat.target=rerollTarget(row.position,track,cat.rerolled.steps);
+      visible.push(row);
+    }
+    return {rows:visible,graph};
+  }
+
+  function rarityLabel(r){return({rare:'Rare',super:'Super Rare',uber:'Uber Rare',legend:'Legend Rare'})[r]||r;}
+  function fmtSeed(n){return String(u32(n));}
+  function nextLabel(cat){
+    if(!cat?.next || !Number.isInteger(cat.next.sequence))return '範圍外';
+    return `${cat.next.sequence}${cat.next.track===0?'A':'B'}`;
+  }
+  function catInfoLink(cat){
+    const id=Number(cat?.id);
+    if(!Number.isInteger(id) || id<=0) return '';
+    const infoId=id-1;
+    const name=String(cat?.name || `Cat #${id}`);
+    return `<a class="catInfoLink" href="https://battlecatsinfo.github.io/unit.html?id=${infoId}" target="_blank" rel="noopener noreferrer" title="查看 ${esc(name)} 角色資料" aria-label="查看 ${esc(name)} 角色資料"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3.8A1.8 1.8 0 0 0 2 4.8v7.4A1.8 1.8 0 0 0 3.8 14h7.4a1.8 1.8 0 0 0 1.8-1.8V10"/><path d="M9 2h5v5"/><path d="M14 2 7.5 8.5"/></svg></a>`;
+  }
+  function rollLink(cat,label=null,title='點擊後以此抽為上一抽，切換 Seed'){
+    if(!cat)return '';
+    const text=label==null?cat.name:label;
+    if(cat.slotSeed==null || cat.id==null || String(cat.id)==='-1')return esc(text);
+    return `<a href="#" class="rollLink" data-roll-seed="${esc(String(u32(cat.slotSeed)))}" data-roll-last="${esc(String(cat.id))}" title="${esc(title)}">${esc(text)}</a>`;
+  }
+  function markerForCat(cat,suffix=''){
+    if(!cat || !Number.isInteger(cat.sequence))return '';
+    return `${cat.sequence}${cat.track===0?'A':'B'}${suffix}`;
+  }
+  function resultInnerHtml(cat,track,pos,baseSeed){
+    let switchInfo='';
+    if(cat.rerolled){
+      const t=cat.target?`${cat.target.position}${cat.target.track}`:'?';
+      const rm=markerForCat(cat,'R');
+      switchInfo=`<div class="switchInfo catInfoHost"${rm?` data-pick="${esc(rm)}"`:''}>↳ Rare 重複：${rollLink(cat.rerolled)}${catInfoLink(cat.rerolled)}<span class="target">→ ${esc(t)}</span></div>`;
+    }
+    const title=upgradeTitle(cat);
+    return `<div class="catSimple catInfoHost"${title?` title="${esc(title)}"`:''}>${rollLink(cat)}${catInfoLink(cat)}</div>${switchInfo}`;
+  }
+  function guaranteedInnerHtml(cat,track,pos,pool){
+    const rolls=pool.event?.guaranteed?11:(pool.event?.stepUp?15:0);
+    if(!rolls)return '';
+    const g=cat.guaranteed;
+    if(!g)return '';
+    let extra='';
+    if(cat.rerolled?.guaranteed){
+      const rg=cat.rerolled.guaranteed;
+      const rgm=markerForCat(cat,'RG');
+      extra=`<div class="guaranteedAlt catInfoHost"${rgm?` data-pick="${esc(rgm)}"`:''}>↳ 換軌：${rollLink(rg)}${catInfoLink(rg)}<span class="target">→ ${esc(nextLabel(rg))}</span></div>`;
+    }
+    return `<div class="guaranteedSimple catInfoHost">${rollLink(g)}${catInfoLink(g)}<span class="target">→ ${esc(nextLabel(g))}</span></div>${extra}`;
+  }
+
+  function fitDenseCells(root){
+    if(!root) return;
+    requestAnimationFrame(()=>{
+      const cells=root.querySelectorAll('.gridResult,.gridGuaranteed');
+      for(const cell of cells){
+        cell.classList.remove('autoFitDense');
+        cell.style.setProperty('--fit-scale','1');
+      }
+      // Let normal cells keep the regular type size. Only shrink cells whose content
+      // would otherwise be clipped by the fixed half-track row geometry.
+      for(const cell of cells){
+        if(!cell.clientHeight || cell.scrollHeight<=cell.clientHeight+1) continue;
+        cell.classList.add('autoFitDense');
+        let scale=Math.min(.96,Math.max(.58,(cell.clientHeight-3)/Math.max(cell.scrollHeight,1)));
+        cell.style.setProperty('--fit-scale',scale.toFixed(3));
+        let guard=0;
+        while(cell.scrollHeight>cell.clientHeight+1 && scale>.54 && guard<10){
+          scale=Math.max(.54,scale-.035);
+          cell.style.setProperty('--fit-scale',scale.toFixed(3));
+          guard++;
+        }
+      }
+    });
+  }
+
+  function clearCrossPanelWarnings(){
+    for(const panel of panelStates){
+      panel.resultBody?.querySelectorAll('.crossPanelWarning').forEach(el=>el.remove());
+    }
+  }
+  function refreshCrossPanelWarnings(){
+    clearCrossPanelWarnings();
+    if(panelStates.length<2) return;
+    for(const src of panelStates){
+      if(!src.graph?.length || !src.pool) continue;
+      const limit=Math.min(src.future||0,Math.max(0,src.graph.length-1));
+      for(let p=1;p<=limit;p++){
+        const srcRow=src.graph[p-1];
+        if(!srcRow) continue;
+        for(const track of [0,1]){
+          const srcCat=track===0?srcRow.a:srcRow.b;
+          if(!srcCat || srcCat.rarity!=='rare' || String(srcCat.id)==='-1') continue;
+          const lines=[];
+          for(const dst of panelStates){
+            if(dst===src || !dst.graph?.length || !dst.pool) continue;
+            if(src.eventSelect?.value && dst.eventSelect?.value && src.eventSelect.value===dst.eventSelect.value) continue;
+            const nextRow=dst.graph[p]; // after pA/pB, same track's next normal roll is (p+1)A/(p+1)B
+            if(!nextRow) continue;
+            const nextCat=track===0?nextRow.a:nextRow.b;
+            if(!nextCat || nextCat.rarity!=='rare' || String(nextCat.id)!==String(srcCat.id)) continue;
+            const rerolled=rerollCat(nextCat,dst.pool);
+            if(!rerolled) continue;
+            const target=rerollTarget(p+1,track,rerolled.steps);
+            lines.push(`表${dst.index} ${p+1}${track===0?'A':'B'} ${nextCat.name}`);
+          }
+          if(!lines.length) continue;
+          const marker=`${p}${track===0?'A':'B'}`;
+          const cell=src.resultBody?.querySelector(`.gridResult[data-pick="${marker}"]`);
+          if(!cell) continue;
+          const box=document.createElement('div');
+          box.className='crossPanelWarning';
+          for(const line of lines){
+            const div=document.createElement('div');
+            div.className='crossPanelWarningLine';
+            div.textContent=line;
+            box.appendChild(div);
+          }
+          cell.appendChild(box);
+        }
+      }
+    }
+    for(const panel of panelStates) fitDenseCells(panel.resultBody);
+  }
+  function gridCell(col,row,span,classes,html,pick=''){
+    const attr=pick?` data-pick="${esc(pick)}"`:'';
+    const pickClass=pick?' pickable':'';
+    return `<div class="gridCell ${classes}${pickClass}" style="grid-column:${col};grid-row:${row}/span ${span}"${attr}>${html}</div>`;
+  }
+  function clearPathHighlight(){
+    resultBody.querySelectorAll('.path-picked,.path-consecutive,.path-next').forEach(el=>el.classList.remove('path-picked','path-consecutive','path-next'));
+  }
+  function parseMarker(marker){
+    const m=String(marker||'').match(/^(-?\d+)([AB])(R)?(G)?$/);
+    if(!m)return null;
+    return {position:Number(m[1]),track:m[2]==='A'?0:1,rerolled:!!m[3],guaranteed:!!m[4]};
+  }
+  function findVisibleRow(position){ return currentRows.find(r=>r.position===position)||null; }
+  function getCatByMarker(marker){
+    const m=parseMarker(marker); if(!m)return null;
+    let row=null;
+    if(m.position>0)row=currentGraph[m.position-1]||null;
+    else row=findVisibleRow(m.position);
+    if(!row)return null;
+    let cat=m.track===0?row.a:row.b;
+    if(m.rerolled)cat=cat?.rerolled||null;
+    if(m.guaranteed)cat=cat?.guaranteed||null;
+    return cat;
+  }
+  function baseMarker(cat){
+    if(!cat || !Number.isInteger(cat.sequence))return '';
+    return `${cat.sequence}${cat.track===0?'A':'B'}`;
+  }
+  function markElement(marker,kind){
+    if(!marker)return;
+    resultBody.querySelectorAll(`[data-pick="${marker}"]`).forEach(el=>el.classList.add(kind));
+    // Rerolled cats share the same visual result cell in this compact layout.
+    if(marker.includes('R')){
+      const base=marker.replace(/R(?=G?$)/,'').replace(/G$/,'');
+      resultBody.querySelectorAll(`[data-pick="${base}"]`).forEach(el=>el.classList.add(kind));
+    }
+  }
+  function markCat(cat,kind){
+    if(!cat)return;
+    const marker=baseMarker(cat);
+    markElement(marker,kind);
+  }
+  function actualStartCat(){
+    const first=currentGraph[0]?.a; if(!first)return null;
+    if(currentLastCatId!=null && first.rerolled && String(first.id)===String(currentLastCatId))return first.rerolled;
+    return first;
+  }
+  function traceUntil(target,which='itself'){
+    let cur=actualStartCat(), guard=0;
+    const passed=[];
+    while(cur && guard++<currentGraph.length*4+20){
+      const checking=which==='guaranteed'?cur.guaranteed:cur;
+      if(checking===target)return {found:true,base:cur,passed};
+      passed.push(cur); cur=cur.next;
+    }
+    return {found:false,base:null,passed:[]};
+  }
+  function highlightSingle(marker){
+    clearPathHighlight();
+    const target=getCatByMarker(marker); if(!target)return;
+    const parsed=parseMarker(marker);
+    if(!parsed || parsed.position<=0){ markElement(marker,'path-picked'); return; }
+    const traced=traceUntil(target,'itself');
+    if(traced.found){
+      traced.passed.forEach(c=>markCat(c,'path-picked'));
+      markCat(target,'path-picked');
+      if(target.next)markCat(target.next,'path-next');
+    }else{
+      markElement(marker,'path-picked');
+      if(target.next)markCat(target.next,'path-next');
+    }
+  }
+  function highlightGuaranteed(marker){
+    clearPathHighlight();
+    const guaranteed=getCatByMarker(marker); if(!guaranteed)return;
+    const parsed=parseMarker(marker); if(!parsed || parsed.position<=0){ markElement(marker,'path-consecutive'); return; }
+    const traced=traceUntil(guaranteed,'guaranteed');
+    let base=traced.found?traced.base:null;
+    if(traced.found)traced.passed.forEach(c=>markCat(c,'path-picked'));
+    if(!base){
+      // Fallback to the visible base cell when the selected guaranteed is not on the current path.
+      const baseMarkerText=`${parsed.position}${parsed.track===0?'A':'B'}${parsed.rerolled?'R':''}`;
+      base=getCatByMarker(baseMarkerText);
+    }
+    if(base){
+      const rolls=currentPool?.event?.guaranteed?11:(currentPool?.event?.stepUp?15:0);
+      let cur=base;
+      for(let i=0;i<Math.max(0,rolls-1)&&cur;i++){
+        const kind=(rolls===15 && i>=3 && i<8)?'path-picked':'path-consecutive';
+        markCat(cur,kind);
+        cur=cur.next;
+      }
+    }
+    markElement(marker,'path-consecutive');
+    if(guaranteed.next)markCat(guaranteed.next,'path-next');
+  }
+  function highlightMarker(marker){
+    const parsed=parseMarker(marker); if(!parsed)return;
+    if(parsed.guaranteed)highlightGuaranteed(marker); else highlightSingle(marker);
+  }
+  function markCurrentNextPosition(){
+    clearPathHighlight();
+    const first=currentGraph[0]?.a; if(!first)return;
+    const next=(currentLastCatId!=null && first.rerolled && String(first.id)===String(currentLastCatId))?first.rerolled:first;
+    markCat(next,'path-next');
+  }
+  function renderPanel(panel,rows,graph,seed,past,future,pool){
+    panel.rows=rows;
+    panel.graph=graph;
+    panel.pool=pool;
+    panel.seed=seed;
+    panel.past=past;
+    panel.future=future;
+    activatePanel(panel);
+
+    const parts=[];
+    if(rows.length) parts.push(`<div class="gridBacktrack" style="grid-column:4/7;grid-row:1">B Track / Backtrack</div>`);
+    let firstFutureSeen=false;
+    rows.forEach((row,i)=>{
+      const aStart=i*2+1;
+      const bStart=aStart+1;
+      const isPast=row.position<0;
+      const isStart=!firstFutureSeen && row.position>0;
+      if(isStart) firstFutureSeen=true;
+      const common=(isPast?' gridPast':'')+(isStart?' gridStart':'');
+      const ga=row.position>0?guaranteedInnerHtml(row.a,'A',row.position,pool):'';
+      const gb=row.position>0?guaranteedInnerHtml(row.b,'B',row.position,pool):'';
+      const am=`${row.position}A`, bm=`${row.position}B`;
+      parts.push(gridCell(1,aStart,2,`gridNo${common}`,`${esc(String(row.position))}A`,am));
+      parts.push(gridCell(2,aStart,2,`gridResult score-${scoreRarityLabel(row.a.score)}${common}`,resultInnerHtml(row.a,'A',row.position,row.baseSeed),am));
+      parts.push(gridCell(3,aStart,2,`gridGuaranteed${common}`,ga,row.position>0&&row.a.guaranteed?`${am}G`:''));
+      parts.push(gridCell(4,bStart,2,`gridResult score-${scoreRarityLabel(row.b.score)}${isPast?' gridPast':''}${isStart?' gridStart':''}`,resultInnerHtml(row.b,'B',row.position,row.baseSeed),bm));
+      parts.push(gridCell(5,bStart,2,`gridGuaranteed${isPast?' gridPast':''}${isStart?' gridStart':''}`,gb,row.position>0&&row.b.guaranteed?`${bm}G`:''));
+      parts.push(gridCell(6,bStart,2,`gridNo${isPast?' gridPast':''}${isStart?' gridStart':''}`,`${esc(String(row.position))}B`,bm));
+    });
+    panel.resultBody.innerHTML=parts.join('');
+    fitDenseCells(panel.resultBody);
+
+    panel.summary.textContent='';
+  }
+
+  function calculatePanel(panel,quiet=false){
+    const seed=readSeed();
+    const past=clampInt(pastInput.value,0,200,'過去位數');
+    const future=clampInt(futureInput.value,1,1000,'未來位數');
+    saveRangePrefs();
+    const pool=getPoolForPanel(panel);
+    const built=buildRows(seed,past,future,pool,currentLastCatId);
+    renderPanel(panel,built.rows,built.graph,seed,past,future,pool);
+    updateEventInfoForPanel(panel);
+    if(!quiet) setStatus(`表${panel.index} 已更新。`,'ok');
+    return built;
+  }
+
+  function calculate(){
+    try{
+      readSeed();
+      clampInt(pastInput.value,0,200,'過去位數');
+      clampInt(futureInput.value,1,1000,'未來位數');
+      let ok=0, firstError=null;
+      for(const panel of panelStates){
+        try{
+          calculatePanel(panel,true);
+          ok++;
+        }catch(e){
+          panel.summary.textContent=`無法計算：${e.message||e}`;
+          panel.resultBody.innerHTML=`<div class="gridEmpty">${esc(e.message||e)}</div>`;
+          if(!firstError) firstError=e;
+        }
+      }
+      if(ok){ refreshCrossPanelWarnings(); saveSessionPrefs(); setStatus(`已更新 ${ok} 張比較表。`,'ok'); }
+      else throw firstError || new Error('沒有可計算的比較表。');
+    }catch(e){setStatus(esc(e.message||e),'err');}
+  }
+
+  function switchToRoll(panel,seed,lastId,catName=''){
+    currentLastCatId=String(lastId);
+    seedInput.value=String(u32(Number(seed)));
+    saveSessionPrefs();
+    calculate();
+    activatePanel(panel);
+    markCurrentNextPosition();
+    setStatus(`已切換 Seed：${esc(catName||('Cat #'+lastId))}`,'ok');
+    panel.tableWrap?.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function handlePanelResultClick(panel,e){
+    activatePanel(panel);
+    const info=e.target.closest('.catInfoLink');
+    if(info){ e.stopPropagation(); return; }
+    const roll=e.target.closest('.rollLink');
+    if(roll){
+      e.preventDefault();
+      e.stopPropagation();
+      switchToRoll(panel,roll.dataset.rollSeed,roll.dataset.rollLast,roll.textContent.trim());
+      return;
+    }
+    const pick=e.target.closest('[data-pick]');
+    if(pick && panel.resultBody.contains(pick)){
+      e.preventDefault();
+      highlightMarker(pick.dataset.pick);
+    }
+  }
+
+  function readSeed(){const raw=seedInput.value.trim();if(!/^\d+$/.test(raw))throw new Error('Seed 必須是 0 ~ 4294967295 的整數。');const n=Number(raw);if(!Number.isSafeInteger(n)||n<0||n>=U32)throw new Error('Seed 必須介於 0 與 4294967295。');return u32(n);}
+  function clampInt(v,min,max,name){const n=Number(v);if(!Number.isInteger(n)||n<min||n>max)throw new Error(`${name} 必須介於 ${min} ~ ${max}。`);return n;}
+
+  function syncMode(){
+    const git=currentMode()==='gitlab';
+    gitlabPanel.classList.toggle('hidden',!git);
+    manualPanel.classList.toggle('hidden',git);
+    panelStates.forEach(panel=>panel.eventArea.classList.toggle('hidden',!git));
+    if(git&&!battleData)setStatus('目前選擇 GitLab 自動資料；請先按「更新 GitLab 資料」。','warn');
+    else setStatus(git?'已切換至 GitLab 自動資料。':'已切換至手動卡池模式。');
+    calculate();
+  }
+
+  function setSettingsVisible(show){
+    appGrid.classList.toggle('settingsCollapsed',!show);
+    settingsToggle.setAttribute('aria-expanded',show?'true':'false');
+    settingsToggle.querySelector('span').textContent=show?'隱藏設定':'顯示設定';
+    try{localStorage.setItem('battle-cats-settings-visible-v1',show?'1':'0');}catch(_){ }
+  }
+  settingsToggle.addEventListener('click',()=>setSettingsVisible(appGrid.classList.contains('settingsCollapsed')));
+  document.addEventListener('click',(ev)=>{
+    if(!ev.target.closest('.panelEventArea')) closeEventPickers();
+  });
+  document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape') closeEventPickers();});
+  window.addEventListener('resize',()=>{for(const p of panelStates){if(p.eventMenu?.classList.contains('open')) positionEventMenu(p);}});
+  try{setSettingsVisible(localStorage.getItem('battle-cats-settings-visible-v1')!=='0');}catch(_){setSettingsVisible(true);}
+
+  updateDataBtn.addEventListener('click',updateGitlabData);
+  calcBtn.addEventListener('click',calculate);
+  addCompareBtn.addEventListener('click',addComparisonPanel);
+  eventSearch.addEventListener('input',()=>{
+    renderEventOptions(true);
+  });
+  activeOnly.addEventListener('change',()=>{
+    renderEventOptions(true);
+    calculate();
+  });
+  document.querySelectorAll('input[name="dataMode"]').forEach(r=>r.addEventListener('change',syncMode));
+  $('sampleBtn').addEventListener('click',()=>{poolInput.value=sampleData;setStatus('已載入手動示範資料。');});
+  $('saveManualBtn').addEventListener('click',()=>{storageSet(MANUAL_CACHE_KEY,poolInput.value);setStatus('手動卡池已儲存在本機瀏覽器。','ok');});
+  seedInput.addEventListener('keydown',e=>{if(e.key==='Enter')calculate();});
+  seedInput.addEventListener('input',()=>{ currentLastCatId=null; saveSessionPrefs(); });
+  pastInput.addEventListener('change',()=>{saveRangePrefs();calculate();});
+  futureInput.addEventListener('change',()=>{saveRangePrefs();calculate();});
+
+  loadRangePrefs();
+  const startupSession=loadSessionPrefs();
+  seedInput.value=startupSession.seed || '373531645';
+  currentLastCatId=startupSession.lastCatId;
+  poolInput.value=storageGet(MANUAL_CACHE_KEY)||sampleData;
+  const startupKeys=startupSession.eventKeys.length ? startupSession.eventKeys : [''];
+  for(let i=0;i<Math.min(MAX_PANELS,Math.max(1,startupKeys.length));i++) createComparisonPanel(startupKeys[i] || '');
+
+  const cached=loadCachedData();
+  if(cached){
+    setStatus('已載入快取，正在更新資料…','ok');
+    try{ calculate(); }catch(_){}
+    updateGitlabData();
+  } else {
+    updateGitlabData();
+  }
+})();
+</script>
+</body>
+</html>
