@@ -1,32 +1,9 @@
 <!doctype html>
-<!--
-PRIVATE-SHARE BUILD / 私人分享版
-
-This browser-based implementation contains code structure and logic derived from
-battle-cats-rolls by Lin Jen-Shin (godfat):
-https://gitlab.com/godfat/battle-cats-rolls
-
-Original copyright notice:
-Copyright (c) 2018-2026 Lin Jen-Shin (godfat)
-
-Original project is licensed under the Apache License, Version 2.0.
-This file contains substantial modifications and a JavaScript/browser-only
-reimplementation, including UI changes, multi-table comparison, persistence,
-track highlighting and additional convenience features.
-
-This build is unofficial and intended for small-scale private sharing.
-The private-share label does not restrict rights granted by Apache-2.0.
-Battle Cats / 貓咪大戰爭 names, characters, trademarks and related game data
-remain the property of their respective rights holders. This tool is not
-endorsed by or affiliated with PONOS.
--->
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex" />
-<meta name="referrer" content="no-referrer" />
-<title>Battle Cats Seed Tracker · 私人分享版</title>
+<title>Battle Cats Seed Tracker v20</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -186,18 +163,21 @@ endorsed by or affiliated with PONOS.
   .eventPickerLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .eventPickerChevron{flex:0 0 auto;color:#82909d;font-size:13px;transition:transform .16s ease}
   .eventPickerButton[aria-expanded="true"] .eventPickerChevron{transform:rotate(180deg)}
-  .eventPickerMenu{display:none;position:fixed;left:0;top:0;width:320px;z-index:220;background:rgba(255,255,255,.98);border:1px solid #d4dbe2;border-radius:14px;box-shadow:0 16px 42px rgba(26,39,52,.16);max-height:min(58vh,520px);overflow:auto;overscroll-behavior:contain;padding:6px;scroll-snap-type:y proximity;backdrop-filter:blur(14px)}
+  .eventPickerMenu{display:none;position:fixed;left:0;top:0;width:320px;z-index:220;background:rgba(255,255,255,.98);border:1px solid #d4dbe2;border-radius:14px;box-shadow:0 16px 42px rgba(26,39,52,.16);max-height:min(58vh,520px);overflow:auto;overscroll-behavior:contain;padding:6px;scroll-snap-type:none;backdrop-filter:blur(14px)}
   .eventPickerMenu.open{display:block}
+  .eventPickerMenu{scroll-behavior:auto;touch-action:pan-y;overflow-x:hidden}
   .eventGroup{padding:0 0 4px}
   .eventGroup+.eventGroup{border-top:1px solid #e7ebef;margin-top:5px;padding-top:5px}
   .eventGroupLabel{position:sticky;top:-6px;z-index:2;padding:8px 9px 6px;background:rgba(247,249,251,.96);backdrop-filter:blur(10px);font-size:11px;font-weight:800;letter-spacing:.04em;color:#7a8793;border-radius:8px;margin-bottom:3px}
-  .eventGroupLabel.future{color:#607f9b}.eventGroupLabel.current{color:#527865}.eventGroupLabel.expired{color:#8b9299}
-  .eventPickerItem{width:100%;display:block;text-align:left;border:0;background:transparent;color:#344054;border-radius:9px;padding:8px 9px;font-size:11.5px;font-weight:520;line-height:1.35;scroll-snap-align:center}
+  .eventGroupLabel.future{color:#607f9b}.eventGroupLabel.current{color:#527865}.eventGroupLabel.expired{color:#8b9299}.eventGroupLabel.specialExpired{color:#9b7440}
+  .eventPickerItem{width:100%;display:block;text-align:left;border:0;background:transparent;color:#344054;border-radius:9px;padding:8px 9px;font-size:11.5px;font-weight:520;line-height:1.35;scroll-snap-align:none}
   .eventPickerItem:hover{background:#f1f5f7}
   .eventPickerItem.selected{background:#eaf1f5;color:#2f607f;font-weight:700}
   .eventPickerItem.hasGuaranteed{color:var(--guaranteed);font-weight:720}
   .eventPickerItem.hasGuaranteed:hover{background:#fff0f2;color:#c43e58}
   .eventPickerItem.hasGuaranteed.selected{background:#fdebed;color:#bd3852}
+  .eventGroupMore{width:100%;display:block;text-align:center;border:0;background:#f5f7f9;color:#667785;border-radius:9px;padding:7px 9px;margin-top:3px;font-size:11.5px;font-weight:700;cursor:pointer}
+  .eventGroupMore:hover{background:#eaf0f4;color:#2f607f}
   .eventPickerButton.hasGuaranteed .eventPickerLabel{color:var(--guaranteed);font-weight:760}
   .catInfoHost{position:relative;padding-right:22px}
   .catInfoLink{position:absolute;right:3px;bottom:2px;width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(47,103,129,.22);border-radius:5px;background:rgba(255,255,255,.72);color:#5f7788;text-decoration:none;opacity:.82;transition:all .14s ease;z-index:4}
@@ -305,22 +285,74 @@ endorsed by or affiliated with PONOS.
     justify-content:center;
   }
 
-  .appSpacer{flex:1}
-  .privateBadge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #d7dce2;border-radius:999px;background:#f7f8fa;color:#5c6672;font-size:11px;font-weight:700;white-space:nowrap}
-  .licenseDetails{position:relative;margin:0}
-  .licenseDetails>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;padding:6px 9px;border:1px solid #d7dce2;border-radius:9px;background:#fff;color:#52606d;font-size:11px;font-weight:700;user-select:none}
-  .licenseDetails>summary::-webkit-details-marker{display:none}
-  .licenseDetails[open]>summary{background:#f4f6f8}
-  .licensePopover{position:absolute;right:0;top:38px;width:min(560px,calc(100vw - 24px));max-height:min(70vh,620px);overflow:auto;padding:14px;background:#fffdf9;border:1px solid #d7dce2;border-radius:14px;box-shadow:0 16px 44px rgba(43,50,58,.18);z-index:120;color:#364152}
-  .licensePopover h3{margin:0 0 8px;font-size:15px;color:#27343d}
-  .licensePopover p{margin:7px 0;font-size:12px;line-height:1.6}
-  .licensePopover a{color:var(--accent);text-decoration:none}
-  .licensePopover a:hover{text-decoration:underline}
-  .licensePopover details{margin-top:10px;border-top:1px solid #ece9e2;padding-top:9px}
-  .licensePopover details>summary{cursor:pointer;font-size:12px;font-weight:750;color:#465461}
-  .licenseText{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;line-height:1.45;color:#59636f;background:#f7f8fa;border:1px solid #e0e4e8;border-radius:10px;padding:10px;margin-top:8px;max-height:340px;overflow:auto}
-  .privateNote{margin:12px 14px 4px;padding:8px 10px;border:1px solid #e4e0d8;border-radius:10px;background:rgba(255,253,249,.82);color:#79818a;font-size:10.5px;line-height:1.45;text-align:center}
-  @media (max-width:760px){.privateBadge{display:none}.licenseDetails>summary{padding:6px 8px}.licensePopover{position:fixed;right:10px;left:10px;top:54px;width:auto;max-height:72vh}}
+  /* v19: flat source/license control; bottom legal strip removed */
+  .sourceLicenseBtn,
+  #sourceLicenseBtn,
+  .licenseToggle,
+  #licenseToggle,
+  [data-action="license"],
+  [data-action="source-license"]{
+    appearance:none!important;
+    background:#f7f8f9!important;
+    color:#475467!important;
+    border:1px solid #d8dee5!important;
+    border-radius:8px!important;
+    box-shadow:none!important;
+    padding:7px 12px!important;
+    min-height:32px!important;
+    font-size:12px!important;
+    font-weight:700!important;
+    line-height:1.2!important;
+    transition:background .14s ease,border-color .14s ease,color .14s ease!important;
+  }
+  .sourceLicenseBtn:hover,
+  #sourceLicenseBtn:hover,
+  .licenseToggle:hover,
+  #licenseToggle:hover,
+  [data-action="license"]:hover,
+  [data-action="source-license"]:hover{
+    background:#eef2f5!important;
+    border-color:#c5ced7!important;
+    color:#344054!important;
+    transform:none!important;
+  }
+  .sourceLicenseBtn:active,
+  #sourceLicenseBtn:active,
+  .licenseToggle:active,
+  #licenseToggle:active{
+    background:#e8edf1!important;
+    box-shadow:none!important;
+    transform:none!important;
+  }
+
+
+  /* v20: source/license control moved to bottom of settings panel */
+  .settingsLicenseSection{
+    margin-top:18px!important;
+    margin-bottom:0!important;
+    padding-top:12px;
+    border-top:1px solid #e5e9ed;
+  }
+  .settingsLicenseBtn{
+    width:100%!important;
+    min-height:36px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    background:#f5f7f8!important;
+    color:#53616d!important;
+    border:1px solid #d8dee4!important;
+    border-radius:8px!important;
+    box-shadow:none!important;
+    padding:8px 12px!important;
+    font-size:12px!important;
+    font-weight:700!important;
+  }
+  .settingsLicenseBtn:hover{
+    background:#edf1f4!important;
+    color:#344054!important;
+    border-color:#c7d0d8!important;
+  }
 
 </style>
 </head>
@@ -328,224 +360,6 @@ endorsed by or affiliated with PONOS.
 <div class="appBar">
   <button class="settingsToggle" id="settingsToggle" type="button" aria-expanded="true">☰ <span>隱藏設定</span></button>
   <div class="appTitle">Battle Cats Seed Tracker</div>
-  <span class="privateBadge">私人分享版 · 非官方</span>
-  <div class="appSpacer"></div>
-  <details class="licenseDetails">
-    <summary>來源與授權</summary>
-    <div class="licensePopover">
-      <h3>來源與授權</h3>
-      <p>本工具是私人分享用的非官方修改版，部分程式結構與抽卡邏輯源自 <a href="https://gitlab.com/godfat/battle-cats-rolls" target="_blank" rel="noopener noreferrer">battle-cats-rolls</a>。</p>
-      <p><strong>原作者：</strong>Lin Jen-Shin (godfat) · Copyright © 2018–2026<br><strong>原專案授權：</strong>Apache License 2.0</p>
-      <p>此檔案包含 JavaScript／瀏覽器化重寫、介面設計、多表比較、設定保存、路徑標記等修改。這個「私人分享版」標示只描述本版本的使用情境，不改變 Apache-2.0 原本授予的權利。</p>
-      <p>《貓咪大戰爭》名稱、角色、商標與相關遊戲資料之權利歸各自權利人所有。本工具與 PONOS 無隸屬、授權或背書關係。</p>
-      <details>
-        <summary>查看 Apache License 2.0 全文</summary>
-        <pre class="licenseText">
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   1. Definitions.
-
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
-
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
-
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
-
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
-
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
-
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
-
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
-
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
-
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to Licensor for inclusion in the Work by the copyright owner
-      or by an individual or Legal Entity authorized to submit on behalf of
-      the copyright owner. For the purposes of this definition, "submitted"
-      means any form of electronic, verbal, or written communication sent
-      to the Licensor or its representatives, including but not limited to
-      communication on electronic mailing lists, source code control systems,
-      and issue tracking systems that are managed by, or on behalf of, the
-      Licensor for the purpose of discussing and improving the Work, but
-      excluding communication that is conspicuously marked or otherwise
-      designated in writing by the copyright owner as "Not a Contribution."
-
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
-
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
-
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
-
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
-
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
-
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
-
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
-
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
-
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
-
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
-
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
-
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
-
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
-
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
-
-   END OF TERMS AND CONDITIONS
-
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright [yyyy] [name of copyright owner]
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-</pre>
-      </details>
-    </div>
-  </details>
 </div>
 <div class="wrap">
   <div class="grid" id="appGrid">
@@ -599,7 +413,11 @@ endorsed by or affiliated with PONOS.
       <div class="section btns"><button class="primary" id="calcBtn">開始推算</button></div>
       <div id="status" class="status">準備就緒。</div>
 
-    </aside>
+    
+      <div class="section settingsLicenseSection">
+        <button type="button" class="sourceLicenseBtn settingsLicenseBtn">來源與授權</button>
+      </div>
+</aside>
 
     <main class="compareWorkspace">
       <div class="compareTop">
@@ -612,7 +430,6 @@ endorsed by or affiliated with PONOS.
     </main>
   </div>
 </div>
-<div class="privateNote">私人分享版 · 非官方工具 · 請保留「來源與授權」資訊。此頁已加入 noindex / nofollow，但真正的私人存取仍應由你的伺服器權限、密碼或存取控管負責。</div>
 
 <script>
 (() => {
@@ -867,8 +684,13 @@ endorsed by or affiliated with PONOS.
     dataMeta.innerHTML=`<b>${Object.keys(battleData.cats).length}</b> 角色 · <b>${Object.keys(battleData.gacha).length}</b> 卡池 · <b>${battleData.events.length}</b> 活動${latestEnd?` · 至 ${esc(latestEnd)}`:''}<br>${esc(when)}`;
   }
 
+  // 活動日以裝置本地時間上午 11:00 為換日分界。
+  // 例如 9/21 10:50 仍視為 9/20；9/21 11:00 起才視為 9/21。
   function localDateString() {
-    const d=new Date(), y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    const now=new Date();
+    const d=new Date(now.getTime());
+    if (now.getHours() < 11) d.setDate(d.getDate()-1);
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
   }
 
@@ -899,10 +721,41 @@ endorsed by or affiliated with PONOS.
     return `${e.start || '?'} → ${e.end || '?'} ｜ ${shortName}${flags ? ' ['+flags+']' : ''}`;
   }
 
+  // 白金轉蛋／傳說轉蛋在原始資料中可能以多筆長期活動同時被判定為「進行中」。
+  // 每一類只保留開始日期最新的一筆在「進行中」；其餘移至最下方「過期特殊」。
+  function specialEventType(e) {
+    const name=(e.name || battleData?.gacha?.[e.id]?.name || '').replace(/\s+/g,' ').trim();
+    if (/白金.*轉蛋|白金轉蛋/.test(name)) return 'platinum';
+    if (/傳說.*轉蛋|傳說轉蛋/.test(name)) return 'legend';
+    return '';
+  }
+
+  function specialLatestKeys(list) {
+    const latest={};
+    for (const e of list) {
+      const type=specialEventType(e);
+      if (!type || eventState(e).key!=='current') continue;
+      const old=latest[type];
+      if (!old || String(e.start||'').localeCompare(String(old.start||''))>0 ||
+          (String(e.start||'')===String(old.start||'') && String(e.key).localeCompare(String(old.key))>0)) {
+        latest[type]=e;
+      }
+    }
+    return new Set(Object.values(latest).map(e=>e.key));
+  }
+
+  function eventDisplayGroup(e, latestSpecialKeys) {
+    const state=eventState(e).key;
+    const type=specialEventType(e);
+    if (state==='current' && type && !latestSpecialKeys.has(e.key)) return 'specialExpired';
+    return state;
+  }
+
   const EVENT_GROUPS=[
     {key:'future',label:'未開始'},
     {key:'current',label:'進行中'},
-    {key:'expired',label:'已過期'}
+    {key:'expired',label:'已過期'},
+    {key:'specialExpired',label:'過期特殊'}
   ];
 
   function closeEventPickers(except=null){
@@ -948,12 +801,13 @@ endorsed by or affiliated with PONOS.
     panel.eventMenu.innerHTML='';
     if(!list.length){
       panel.eventMenu.innerHTML='<div class="eventPickerEmpty">找不到符合的活動</div>';
-      updateEventPickerLabel(panel);
-      return;
+      updateEventPickerLabel(panel); return;
     }
+    if(!(panel.expandedEventGroups instanceof Set)) panel.expandedEventGroups=new Set();
+    const latestSpecialKeys=specialLatestKeys(list);
     let renderedGroups=0;
     for(const def of EVENT_GROUPS){
-      const items=list.filter(e=>eventState(e).key===def.key);
+      const items=list.filter(e=>eventDisplayGroup(e,latestSpecialKeys)===def.key);
       if(!items.length) continue;
       if(renderedGroups>0){
         const divider=document.createElement('div');
@@ -967,14 +821,23 @@ endorsed by or affiliated with PONOS.
       title.className=`eventGroupLabel ${def.key}`;
       title.textContent=`${def.label} · ${items.length}`;
       group.appendChild(title);
-      for(const e of items){
+      const expanded=panel.expandedEventGroups.has(def.key);
+      for(const item of (expanded ? items : items.slice(0,6))){
         const btn=document.createElement('button');
         btn.type='button';
-        btn.className='eventPickerItem' + (e.guaranteed ? ' hasGuaranteed' : '');
-        btn.dataset.key=e.key;
-        btn.textContent=eventItemLabel(e);
-        if(e.key===panel.eventSelect.value) btn.classList.add('selected');
+        btn.className='eventPickerItem'+(item.guaranteed?' hasGuaranteed':'');
+        btn.dataset.key=item.key;
+        btn.textContent=eventItemLabel(item);
+        if(item.key===panel.eventSelect.value) btn.classList.add('selected');
         group.appendChild(btn);
+      }
+      if(items.length>6){
+        const more=document.createElement('button');
+        more.type='button';
+        more.className='eventGroupMore';
+        more.dataset.group=def.key;
+        more.textContent=expanded ? '收合，只顯示 6 項' : `顯示更多（另有 ${items.length-6} 項）`;
+        group.appendChild(more);
       }
       panel.eventMenu.appendChild(group);
       renderedGroups++;
@@ -1031,8 +894,9 @@ endorsed by or affiliated with PONOS.
       renderEventPickerMenu(panel,[]);
       return;
     }
+    const latestSpecialKeys=specialLatestKeys(list);
     for(const def of EVENT_GROUPS){
-      const items=list.filter(e=>eventState(e).key===def.key);
+      const items=list.filter(e=>eventDisplayGroup(e,latestSpecialKeys)===def.key);
       if(!items.length) continue;
       const og=document.createElement('optgroup');
       og.label=`${def.label} · ${items.length}`;
@@ -1115,6 +979,7 @@ endorsed by or affiliated with PONOS.
 
     const panel={
       id,
+      expandedEventGroups:new Set(),
       el:card,
       badge:card.querySelector('.compareBadge'),
       eventArea:card.querySelector('.panelEventArea'),
@@ -1145,6 +1010,17 @@ endorsed by or affiliated with PONOS.
       }
     });
     panel.eventMenu.addEventListener('click',(ev)=>{
+      const more=ev.target.closest('.eventGroupMore');
+      if(more){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const groupKey=more.dataset.group;
+        if(panel.expandedEventGroups.has(groupKey)) panel.expandedEventGroups.delete(groupKey);
+        else panel.expandedEventGroups.add(groupKey);
+        renderEventPickerMenu(panel,getFilteredEvents());
+        positionEventMenu(panel);
+        return;
+      }
       const item=ev.target.closest('.eventPickerItem');
       if(!item) return;
       ev.preventDefault();
