@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Battle Cats Seed Tracker v20</title>
+<title>Battle Cats Seed Tracker v21</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -352,6 +352,23 @@
     background:#edf1f4!important;
     color:#344054!important;
     border-color:#c7d0d8!important;
+  }
+
+
+  /* v21: keep every comparison table at the same max width as single-panel mode */
+  .comparePanels .comparisonCard,
+  .grid.settingsCollapsed .comparePanels .comparisonCard{
+    flex:0 1 680px!important;
+    width:min(680px,100%)!important;
+    max-width:680px!important;
+    min-width:440px!important;
+  }
+  .comparePanels.multiPanel .comparisonCard,
+  .grid.settingsCollapsed .comparePanels.multiPanel .comparisonCard{
+    flex:0 1 680px!important;
+    width:min(680px,100%)!important;
+    max-width:680px!important;
+    min-width:440px!important;
   }
 
 </style>
