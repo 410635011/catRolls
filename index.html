@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Battle Cats Seed Tracker v21</title>
+<title>Battle Cats Seed Tracker v23</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -371,16 +371,67 @@
     min-width:440px!important;
   }
 
+
+  /* v22: collapsible left-side collection planner + exact shortest-route search UI */
+  .leftRail{min-width:0;position:sticky;top:58px;max-height:calc(100vh - 70px);overflow:auto;display:flex;flex-direction:column;gap:10px;align-self:start;scrollbar-width:thin;scrollbar-color:#bdc7d0 transparent}
+  .leftRail::-webkit-scrollbar,.plannerCharacterList::-webkit-scrollbar,.plannerRoute::-webkit-scrollbar{width:7px;height:7px}
+  .leftRail::-webkit-scrollbar-track,.plannerCharacterList::-webkit-scrollbar-track,.plannerRoute::-webkit-scrollbar-track{background:transparent}
+  .leftRail::-webkit-scrollbar-thumb,.plannerCharacterList::-webkit-scrollbar-thumb,.plannerRoute::-webkit-scrollbar-thumb{background:#bcc6cf;border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+  .leftRail .panel{position:static;top:auto;max-height:none;overflow:visible;width:100%}
+  .grid.settingsCollapsed>.leftRail{display:none!important}
+  .plannerToggleActive{background:#eaf1f5!important;color:#2f607f!important;border-color:#c5d5df!important}
+  .plannerPanel{padding:14px}
+  .plannerCount{font-size:11px;font-weight:750;color:#667085;background:#eef1f5;border-radius:999px;padding:3px 7px}
+  .plannerSourceMeta{font-size:11.5px;color:#667085;line-height:1.5;padding:9px 10px;border:1px solid #e1e6eb;background:#f8fafb;border-radius:10px}
+  .plannerControls{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:7px;margin-bottom:7px}
+  .plannerControls input,.plannerControls select{min-height:38px;padding:7px 9px;font-size:12px}
+  .plannerQuickRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+  .plannerQuickRow .secondary{padding:6px 9px;font-size:11px;border:1px solid #d8dee5}
+  .plannerListMeta{font-size:11px;color:#7b8794}
+  .plannerCharacterList{max-height:42vh;overflow:auto;border:1px solid #dfe4e9;border-radius:11px;background:#fff}
+  .plannerEmpty{padding:18px 12px;text-align:center;color:#8a96a2;font-size:12px;line-height:1.55}
+  .plannerGroupTitle{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:7px 9px;background:rgba(247,249,251,.96);backdrop-filter:blur(10px);border-bottom:1px solid #edf0f2;font-size:10.5px;font-weight:800;color:#667085;letter-spacing:.03em}
+  .plannerCatRow{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:7px;align-items:center;padding:7px 9px;border-bottom:1px solid #f0f2f4;font-size:11.5px;cursor:pointer}
+  .plannerCatRow:last-child{border-bottom:0}.plannerCatRow:hover{background:#f8fafb}.plannerCatRow.selected{background:#eef5f8}
+  .plannerCatRow input{margin:0}.plannerCatName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#344054;font-weight:600}
+  .plannerCatMeta{display:flex;align-items:center;gap:4px;white-space:nowrap}.plannerRarity{font-size:9.5px;font-weight:800;padding:2px 5px;border-radius:999px;border:1px solid rgba(0,0,0,.06);background:#f4f6f8;color:#667085}
+  .plannerRarity.uber{background:#fdebed;color:#a94355}.plannerRarity.legend{background:#efe9f8;color:#6e5598}.plannerRarity.super{background:#fff6d9;color:#8a6a19}.plannerRarity.rare{background:#f7f7f4;color:#73756d}
+  .plannerPoolBadge{font-size:9.5px;font-weight:750;padding:2px 5px;border-radius:999px;background:#edf3f6;color:#547084}
+  .plannerActionBox{display:flex;flex-direction:column;gap:7px}
+  .plannerModeBox{padding:9px 10px;border:1px solid #dfe5ea;border-radius:10px;background:#fafcfd}
+  .plannerModeBox label{margin-bottom:5px;font-size:11px;color:#536675}
+  .plannerModeBox select{min-height:36px;padding:7px 9px;font-size:11.5px}
+  .plannerModeHint{margin-top:5px;font-size:10.3px;line-height:1.45;color:#81909c}
+  .plannerStats{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .plannerStatChip{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border:1px solid #dce3e8;border-radius:999px;background:#fff;color:#536675;font-size:10.5px;font-weight:700}
+  .plannerStatChip.uberMiss{background:#fff1f3;border-color:#f0ccd2;color:#a94355}
+  .plannerMissList{margin-top:6px;padding-top:6px;border-top:1px dashed #e1e6ea;color:#785d66;font-size:10.5px;line-height:1.45}
+  .plannerRouteMiss{margin-top:4px;font-size:10.5px;line-height:1.4;color:#a05262}
+  .plannerLimitLine{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#7a8793}.plannerLimitLine b{color:#475467}
+  .plannerCalcBtn{width:100%;background:var(--accent);color:#fff}.plannerCalcBtn:disabled{opacity:.55}
+  .plannerStatus{margin-top:8px;padding:9px 10px;border-radius:10px;background:#f6f8fa;color:#667085;font-size:11.5px;line-height:1.5}
+  .plannerStatus.ok{background:#ecfdf3;color:var(--ok)}.plannerStatus.err{background:#fef3f2;color:var(--danger)}.plannerStatus.warn{background:#fffaeb;color:var(--warn)}
+  .plannerResult{margin-top:8px}.plannerResultSummary{padding:9px 10px;border:1px solid #dfe5ea;border-radius:10px;background:#fbfcfd;font-size:11.5px;line-height:1.55;color:#475467}
+  .plannerResultSummary strong{color:#2f607f}.plannerRoute{margin-top:7px;max-height:40vh;overflow:auto;border:1px solid #e0e5ea;border-radius:10px;background:#fff}
+  .plannerRouteStep{padding:8px 9px;border-bottom:1px solid #eef1f3}.plannerRouteStep:last-child{border-bottom:0}.plannerRouteTop{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}.plannerRouteRange{font-weight:800;color:#2f607f}.plannerRoutePool{font-weight:750;color:#536675;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .plannerRouteMain{margin-top:4px;font-size:11.5px;line-height:1.45;color:#344054}.plannerRouteHit{margin-top:4px;font-size:10.8px;line-height:1.4;color:#7c5d32}.plannerRouteSeed{margin-top:4px;font-size:10px;color:#8a96a2;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+  .plannerUnfound{margin-top:6px;color:#9b7440}.plannerTiny{font-size:10.5px;color:#8a96a2;line-height:1.45}
+  @media(max-width:720px){
+    .leftRail{position:static;top:auto;max-height:none;overflow:visible}.plannerCharacterList{max-height:52vh}.plannerControls{grid-template-columns:1fr 105px}
+  }
+
 </style>
 </head>
 <body>
 <div class="appBar">
   <button class="settingsToggle" id="settingsToggle" type="button" aria-expanded="true">☰ <span>隱藏設定</span></button>
+  <button class="settingsToggle" id="plannerToggle" type="button" aria-expanded="false">◎ <span>顯示收集規劃</span></button>
   <div class="appTitle">Battle Cats Seed Tracker</div>
 </div>
 <div class="wrap">
   <div class="grid" id="appGrid">
-    <aside class="card panel">
+    <div class="leftRail" id="leftRail">
+    <aside class="card panel" id="settingsPanel">
       <div class="panelCompactTitle"><span>設定</span></div>
       <div class="section sourceBox">
         <div class="sourceTop">
@@ -436,6 +487,44 @@
       </div>
 </aside>
 
+    <aside class="card panel plannerPanel hidden" id="plannerPanel">
+      <div class="panelCompactTitle"><span>角色收集規劃</span><span class="plannerCount" id="plannerSelectedCount">已選 0</span></div>
+      <div class="section">
+        <div id="plannerSourceMeta" class="plannerSourceMeta">目前沒有可用卡池。</div>
+      </div>
+      <div class="section">
+        <label for="plannerSearch">選擇目標角色</label>
+        <div class="plannerControls">
+          <input id="plannerSearch" type="text" placeholder="搜尋角色名稱…" />
+          <select id="plannerRarityFilter" aria-label="稀有度篩選">
+            <option value="all">全部稀有度</option>
+            <option value="legend">Legend Rare</option>
+            <option value="uber">Uber Rare</option>
+            <option value="super">Super Rare</option>
+            <option value="rare">Rare</option>
+          </select>
+        </div>
+        <div class="plannerQuickRow"><span id="plannerListMeta" class="plannerListMeta">0 個角色</span><button type="button" class="secondary" id="plannerClearBtn">清除選取</button></div>
+        <div id="plannerCharacterList" class="plannerCharacterList"><div class="plannerEmpty">載入卡池後會顯示所有可抽角色。</div></div>
+      </div>
+      <div class="section plannerActionBox">
+        <div class="plannerModeBox">
+          <label for="plannerOptimizationMode">路徑最佳化模式</label>
+          <select id="plannerOptimizationMode">
+            <option value="shortest">最短抽齊（總抽數優先）</option>
+            <option value="saveUber">少錯過超激（Uber Rare）</option>
+          </select>
+          <div class="plannerModeHint" id="plannerModeHint">優先讓總抽數最少；同抽數時優先較少切換卡池。</div>
+        </div>
+        <div class="plannerLimitLine"><span>最長搜尋距離</span><b id="plannerSearchLimit">沿用「未來位數」</b></div>
+        <button type="button" class="plannerCalcBtn" id="plannerCalcBtn">計算收集路徑</button>
+        <div class="plannerTiny">錯過超激只計算一般抽位：比較目前已開啟卡池在同一抽位可能出現的 Uber Rare；11 連／Step-up 最後的必中保底不列入錯過統計。</div>
+        <div id="plannerStatus" class="plannerStatus">先選擇想收集的角色。</div>
+        <div id="plannerResult" class="plannerResult"></div>
+      </div>
+    </aside>
+    </div>
+
     <main class="compareWorkspace">
       <div class="compareTop">
         <div>
@@ -471,6 +560,11 @@
   const gitlabPanel = $('gitlabPanel'), manualPanel = $('manualPanel');
   const comparePanelsEl = $('comparePanels'), addCompareBtn = $('addCompareBtn');
   const appGrid = $('appGrid'), settingsToggle = $('settingsToggle');
+  const leftRail = $('leftRail'), settingsPanel = $('settingsPanel'), plannerPanel = $('plannerPanel'), plannerToggle = $('plannerToggle');
+  const plannerSearch = $('plannerSearch'), plannerRarityFilter = $('plannerRarityFilter'), plannerCharacterList = $('plannerCharacterList');
+  const plannerSourceMeta = $('plannerSourceMeta'), plannerSelectedCount = $('plannerSelectedCount'), plannerListMeta = $('plannerListMeta');
+  const plannerClearBtn = $('plannerClearBtn'), plannerCalcBtn = $('plannerCalcBtn'), plannerStatus = $('plannerStatus'), plannerResult = $('plannerResult'), plannerSearchLimit = $('plannerSearchLimit');
+  const plannerOptimizationMode = $('plannerOptimizationMode'), plannerModeHint = $('plannerModeHint');
 
   let battleData = null;
   let visibleEvents = [];
@@ -485,6 +579,9 @@
   let panelSeq = 0;
   const MAX_PANELS = 3;
   const panelStates = [];
+  let plannerCharacters = [];
+  const plannerSelectedIds = new Set();
+  let plannerLastSignature = '';
 
   const sampleData = `# 示範資料，不是真實卡池\nrates=7000,2500,500,0\nrare=稀有A|稀有B|稀有C|稀有D|稀有E|稀有F\nsuper=激稀有A|激稀有B|激稀有C\nuber=超激稀有A|超激稀有B\nlegend=傳說稀有A`;
 
@@ -1052,8 +1149,8 @@
       updateEventPickerLabel(panel);
       updateEventInfoForPanel(panel);
       saveSessionPrefs();
-      try { calculatePanel(panel,true); refreshCrossPanelWarnings(); }
-      catch(e) { panel.summary.textContent=`無法計算：${e.message||e}`; }
+      try { calculatePanel(panel,true); refreshCrossPanelWarnings(); refreshPlannerCharacters(); }
+      catch(e) { panel.summary.textContent=`無法計算：${e.message||e}`; refreshPlannerCharacters(); }
     });
     panel.removeBtn.addEventListener('click',()=>{
       if (panelStates.length<=1) return;
@@ -1064,6 +1161,7 @@
       updatePanelNumbers();
       saveSessionPrefs();
       refreshCrossPanelWarnings();
+      refreshPlannerCharacters();
     });
     panel.resultBody.addEventListener('click',e=>handlePanelResultClick(panel,e));
 
@@ -1086,6 +1184,312 @@
     if (panel && battleData) {
       try { calculatePanel(panel,true); refreshCrossPanelWarnings(); } catch (_) {}
     }
+    refreshPlannerCharacters();
+  }
+
+
+  function setPlannerStatus(message,type=''){
+    plannerStatus.textContent=String(message||'');
+    plannerStatus.className='plannerStatus'+(type?' '+type:'');
+  }
+  function plannerPanelLabel(panel){
+    if(currentMode()==='gitlab'){
+      const e=getSelectedEventForPanel(panel);
+      const raw=(e?.name || battleData?.gacha?.[e?.id]?.name || `表${panel.index}`).replace(/\s+/g,' ').trim();
+      return `表${panel.index} · ${raw || '未命名卡池'}`;
+    }
+    return `表${panel.index} · 手動卡池`;
+  }
+  function plannerPoolEntries(){
+    const out=[],seen=new Set();
+    for(const panel of panelStates){
+      try{
+        const pool=getPoolForPanel(panel);
+        const eventKey=currentMode()==='gitlab' ? String(panel.eventSelect?.value||pool.sourceLabel||panel.id) : 'manual';
+        if(seen.has(eventKey)) continue;
+        seen.add(eventKey);
+        out.push({panel,pool,key:eventKey,label:plannerPanelLabel(panel)});
+      }catch(_){ }
+    }
+    return out;
+  }
+  function plannerCharacterKey(cat){ return String(cat?.id ?? ''); }
+  function plannerRarityOrder(r){ return ({legend:0,uber:1,super:2,rare:3})[r] ?? 9; }
+  function refreshPlannerCharacters(clearRoute=true){
+    const entries=plannerPoolEntries();
+    const map=new Map();
+    for(const entry of entries){
+      for(const rarity of ['legend','uber','super','rare']){
+        for(const cat of entry.pool[rarity]||[]){
+          const key=plannerCharacterKey(cat); if(!key || key==='-1') continue;
+          let item=map.get(key);
+          if(!item){ item={id:key,name:String(cat.name||key),rarity,pools:[]}; map.set(key,item); }
+          if(!item.pools.some(x=>x.key===entry.key)) item.pools.push({key:entry.key,index:entry.panel.index,label:entry.label});
+        }
+      }
+    }
+    plannerCharacters=[...map.values()].sort((a,b)=>plannerRarityOrder(a.rarity)-plannerRarityOrder(b.rarity) || a.name.localeCompare(b.name,'zh-Hant') || a.id.localeCompare(b.id));
+    const available=new Set(plannerCharacters.map(x=>x.id));
+    for(const id of [...plannerSelectedIds]) if(!available.has(id)) plannerSelectedIds.delete(id);
+    plannerSourceMeta.innerHTML=entries.length ? entries.map(e=>`<div>${esc(e.label)}</div>`).join('') : '目前沒有可用卡池。';
+    renderPlannerCharacterList();
+    plannerSearchLimit.textContent=`最多 ${String(futureInput.value||'?')} 抽`;
+    if(clearRoute) invalidatePlannerResult('卡池或種子狀態已更新，請重新計算。');
+  }
+  function renderPlannerCharacterList(){
+    const q=plannerSearch.value.trim().toLowerCase();
+    const rarity=plannerRarityFilter.value;
+    const filtered=plannerCharacters.filter(c=>(rarity==='all'||c.rarity===rarity) && (!q || `${c.name} ${c.id}`.toLowerCase().includes(q)));
+    plannerSelectedCount.textContent=`已選 ${plannerSelectedIds.size}`;
+    plannerListMeta.textContent=`顯示 ${filtered.length} / ${plannerCharacters.length} 個角色`;
+    plannerClearBtn.disabled=plannerSelectedIds.size===0;
+    plannerCalcBtn.disabled=plannerSelectedIds.size===0 || !plannerCharacters.length;
+    if(!filtered.length){ plannerCharacterList.innerHTML='<div class="plannerEmpty">目前篩選條件下沒有角色。</div>'; return; }
+    const groups=[];
+    for(const r of ['legend','uber','super','rare']){
+      const items=filtered.filter(c=>c.rarity===r); if(!items.length) continue;
+      const rows=items.map(c=>{
+        const selected=plannerSelectedIds.has(c.id);
+        const badges=c.pools.map(p=>`<span class="plannerPoolBadge">表${p.index}</span>`).join('');
+        return `<label class="plannerCatRow${selected?' selected':''}"><input class="plannerTargetCheck" type="checkbox" data-target-id="${esc(c.id)}"${selected?' checked':''}><span class="plannerCatName" title="${esc(c.name)}">${esc(c.name)}</span><span class="plannerCatMeta"><span class="plannerRarity ${esc(c.rarity)}">${esc(rarityLabel(c.rarity))}</span>${badges}</span></label>`;
+      }).join('');
+      groups.push(`<div class="plannerGroup"><div class="plannerGroupTitle"><span>${esc(rarityLabel(r))}</span><span>${items.length}</span></div>${rows}</div>`);
+    }
+    plannerCharacterList.innerHTML=groups.join('');
+  }
+  function invalidatePlannerResult(message='選擇目標後計算最短路徑。'){
+    plannerResult.innerHTML='';
+    if(plannerSelectedIds.size) setPlannerStatus(message,'');
+    else setPlannerStatus('先選擇想收集的角色。','');
+  }
+  function plannerGuaranteedRolls(pool){ return pool?.event?.guaranteed?11:(pool?.event?.stepUp?15:0); }
+  function simulatePlannerSingle(seed,lastId,entry){
+    const row=makeRow(seed,1,entry.pool), base=row.a;
+    let actual=base, duplicate=false;
+    if(lastId!=null && isRareDupe(base,{id:String(lastId)})){
+      actual=rerollCat(base,entry.pool); duplicate=true;
+      if(!actual) return null;
+    }
+    if(actual?.slotSeed==null || actual?.id==null || String(actual.id)==='-1') return null;
+    return {type:'single',drawCost:1,entry,startSeed:u32(seed),startLastId:lastId==null?null:String(lastId),baseCat:base,duplicate,acquired:[actual],result:actual,nextSeed:u32(actual.slotSeed),nextLastId:String(actual.id)};
+  }
+  function simulatePlannerGuaranteed(seed,lastId,entry){
+    const rolls=plannerGuaranteedRolls(entry.pool); if(!rolls) return null;
+    const graph=buildFutureGraph(seed,rolls+26,entry.pool,lastId);
+    finishGuaranteed(graph,entry.pool);
+    const first=graph[0]?.a; if(!first) return null;
+    const start=(lastId!=null && first.rerolled && String(first.id)===String(lastId))?first.rerolled:first;
+    const guaranteed=start?.guaranteed; if(!guaranteed || guaranteed.slotSeed==null || guaranteed.id==null || String(guaranteed.id)==='-1') return null;
+    const acquired=[]; let cur=start;
+    for(let i=0;i<rolls-1;i++){
+      if(!cur) return null;
+      acquired.push(cur); cur=cur.next;
+    }
+    acquired.push(guaranteed);
+    return {type:'guaranteed',drawCost:rolls,entry,startSeed:u32(seed),startLastId:lastId==null?null:String(lastId),acquired,result:guaranteed,nextSeed:u32(guaranteed.slotSeed),nextLastId:String(guaranteed.id),rolls};
+  }
+  class PlannerMinHeap{
+    constructor(compare){this.a=[];this.compare=compare;}
+    get size(){return this.a.length;}
+    push(x){const a=this.a;a.push(x);let i=a.length-1;while(i>0){const p=(i-1)>>1;if(this.compare(a[p],x)<=0)break;a[i]=a[p];i=p;}a[i]=x;}
+    pop(){const a=this.a;if(!a.length)return null;const root=a[0],last=a.pop();if(a.length){let i=0;while(true){let l=i*2+1;if(l>=a.length)break;let r=l+1,c=r<a.length&&this.compare(a[r],a[l])<0?r:l;if(this.compare(a[c],last)>=0)break;a[i]=a[c];i=c;}a[i]=last;}return root;}
+  }
+  function plannerBitCount(mask){ let n=0,x=mask; while(x){n+=Number(x&1n);x>>=1n;} return n; }
+  function plannerActionMask(action,targetIndex,beforeMask){
+    let gain=0n; const hits=[];
+    action.acquired.forEach((cat,i)=>{
+      const idx=targetIndex.get(String(cat.id)); if(idx==null) return;
+      const bit=1n<<BigInt(idx); gain|=bit;
+      if((beforeMask&bit)===0n) hits.push({cat,offset:i+1,isGuaranteed:action.type==='guaranteed'&&i===action.acquired.length-1});
+    });
+    return {gain,hits};
+  }
+  function plannerUberUniverse(entries){
+    const map=new Map();
+    for(const entry of entries){
+      for(const cat of entry.pool.uber||[]){
+        const id=String(cat?.id??''); if(!id || id==='-1') continue;
+        if(!map.has(id)) map.set(id,{id,name:String(cat.name||id)});
+      }
+    }
+    const cats=[...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant')||a.id.localeCompare(b.id));
+    const index=new Map(cats.map((c,i)=>[c.id,i]));
+    return {cats,index};
+  }
+  function plannerOptimizationModeValue(){ return plannerOptimizationMode?.value==='saveUber'?'saveUber':'shortest'; }
+  function plannerActionMissData(action,entries,uberUniverse,getSingle,withDetails=false){
+    if(!action) return {mask:0n,opportunities:0,details:[]};
+    let seed=u32(action.startSeed), lastId=action.startLastId==null?null:String(action.startLastId), mask=0n, opportunities=0;
+    const details=[];
+    const regularCount=action.type==='guaranteed'?Math.max(0,(action.rolls||action.drawCost||0)-1):1;
+    for(let i=0;i<regularCount;i++){
+      const chosen=getSingle(action.entry,seed,lastId); if(!chosen) break;
+      const chosenUber=chosen.result?.rarity==='uber'?String(chosen.result.id):null;
+      const seenThisDraw=new Set();
+      for(const altEntry of entries){
+        if(altEntry.key===action.entry.key) continue;
+        const alt=getSingle(altEntry,seed,lastId); if(!alt || alt.result?.rarity!=='uber') continue;
+        const id=String(alt.result.id??'');
+        if(!id || id==='-1' || id===chosenUber || seenThisDraw.has(id)) continue;
+        const idx=uberUniverse.index.get(id); if(idx==null) continue;
+        seenThisDraw.add(id); mask|=1n<<BigInt(idx); opportunities++;
+        if(withDetails) details.push({id,name:String(alt.result.name||id),offset:i+1,pool:altEntry.label});
+      }
+      seed=chosen.nextSeed; lastId=chosen.nextLastId;
+    }
+    return {mask,opportunities,details};
+  }
+  function plannerRouteSearch(entries,targets,maxDraws,mode='shortest'){
+    const targetIndex=new Map(targets.map((t,i)=>[String(t.id),i]));
+    const goal=(1n<<BigInt(targets.length))-1n;
+    const startSeed=readSeed(), startLast=currentLastCatId==null?null:String(currentLastCatId);
+    const uberUniverse=plannerUberUniverse(entries), saveUber=mode==='saveUber';
+    const compare=(a,b)=> saveUber
+      ? (a.missedCount-b.missedCount || a.cost-b.cost || a.switches-b.switches || a.actions-b.actions || b.collected-a.collected)
+      : (a.cost-b.cost || a.switches-b.switches || a.actions-b.actions || b.collected-a.collected || a.missedCount-b.missedCount);
+    const heap=new PlannerMinHeap(compare), exact=new Map(), dominance=new Map(), actionCache=new Map(), singleCache=new Map();
+    function getSingle(entry,seed,lastId){
+      const key=`${entry.key}|single|${u32(seed)}|${lastId??''}`;
+      if(singleCache.has(key)) return singleCache.get(key);
+      const v=simulatePlannerSingle(seed,lastId,entry); singleCache.set(key,v||null); return v;
+    }
+    function getAction(entry,type,seed,lastId){
+      const key=`${entry.key}|${type}|${u32(seed)}|${lastId??''}`;
+      if(actionCache.has(key)) return actionCache.get(key);
+      const action=type==='single'?getSingle(entry,seed,lastId):simulatePlannerGuaranteed(seed,lastId,entry);
+      if(!action){ actionCache.set(key,null); return null; }
+      if(saveUber){
+        const miss=plannerActionMissData(action,entries,uberUniverse,getSingle,false);
+        action.missedUberMask=miss.mask; action.missedUberOpportunities=miss.opportunities;
+      }
+      actionCache.set(key,action); return action;
+    }
+    const start={seed:startSeed,lastId:startLast,mask:0n,missedUberMask:0n,missedCount:0,cost:0,switches:0,actions:0,lastPool:'',parent:null,action:null,collected:0};
+    const exactKey=n=>saveUber
+      ? `${n.seed}|${n.lastId??''}|${n.mask.toString()}|${n.missedUberMask.toString()}|${n.lastPool}`
+      : `${n.seed}|${n.lastId??''}|${n.mask.toString()}|${n.lastPool}`;
+    const baseKey=n=>`${n.seed}|${n.lastId??''}|${n.lastPool}`;
+    function dominated(node){
+      const key=baseKey(node),list=dominance.get(key)||[];
+      for(const e of list){
+        const targetsSuperset=(e.mask|node.mask)===e.mask;
+        const missesSubset=!saveUber || (e.missedUberMask|node.missedUberMask)===node.missedUberMask;
+        if(e.cost<=node.cost && e.switches<=node.switches && targetsSuperset && missesSubset) return true;
+      }
+      const kept=list.filter(e=>{
+        const nodeTargetsSuperset=(node.mask|e.mask)===node.mask;
+        const nodeMissesSubset=!saveUber || (node.missedUberMask|e.missedUberMask)===e.missedUberMask;
+        return !(node.cost<=e.cost && node.switches<=e.switches && nodeTargetsSuperset && nodeMissesSubset);
+      });
+      kept.push({mask:node.mask,missedUberMask:node.missedUberMask,cost:node.cost,switches:node.switches});
+      dominance.set(key,kept);
+      return false;
+    }
+    function push(node){
+      if(node.cost>maxDraws || dominated(node)) return;
+      const k=exactKey(node),old=exact.get(k);
+      if(old && compare(old,node)<=0) return;
+      exact.set(k,node); heap.push(node);
+    }
+    push(start);
+    let expanded=0,best=start,limitHit=false;
+    const MAX_STATES=saveUber?180000:140000;
+    while(heap.size){
+      const node=heap.pop(),k=exactKey(node); if(exact.get(k)!==node) continue;
+      if(node.collected>best.collected || (node.collected===best.collected && compare(node,best)<0)) best=node;
+      if(node.mask===goal) return {found:true,node,expanded,limitHit:false,startSeed,startLast,mode,uberUniverse};
+      if(node.cost>=maxDraws) continue;
+      if(++expanded>MAX_STATES){limitHit=true;break;}
+      for(const entry of entries){
+        const types=['single']; if(plannerGuaranteedRolls(entry.pool)) types.push('guaranteed');
+        for(const type of types){
+          const action=getAction(entry,type,node.seed,node.lastId);
+          if(!action || node.cost+action.drawCost>maxDraws) continue;
+          const {gain,hits}=plannerActionMask(action,targetIndex,node.mask);
+          const mask=node.mask|gain;
+          const switches=node.switches+(node.lastPool && node.lastPool!==entry.key?1:0);
+          const missedUberMask=saveUber?(node.missedUberMask|(action.missedUberMask||0n)):0n;
+          const child={seed:action.nextSeed,lastId:action.nextLastId,mask,missedUberMask,missedCount:plannerBitCount(missedUberMask),cost:node.cost+action.drawCost,switches,actions:node.actions+1,lastPool:entry.key,parent:node,action:{...action,hits},collected:plannerBitCount(mask)};
+          push(child);
+        }
+      }
+    }
+    return {found:false,node:best,expanded,limitHit,startSeed,startLast,mode,uberUniverse};
+  }
+  function reconstructPlannerRoute(node){ const out=[]; let cur=node; while(cur?.parent){out.push(cur.action);cur=cur.parent;} return out.reverse(); }
+  function analyzePlannerRoute(route,entries){
+    const uberUniverse=plannerUberUniverse(entries), singleCache=new Map();
+    function getSingle(entry,seed,lastId){
+      const key=`${entry.key}|${u32(seed)}|${lastId??''}`;
+      if(singleCache.has(key)) return singleCache.get(key);
+      const v=simulatePlannerSingle(seed,lastId,entry); singleCache.set(key,v||null); return v;
+    }
+    let singleCount=0, elevenCount=0, stepUpCount=0, missedMask=0n, opportunities=0;
+    const actionMisses=[];
+    for(const action of route){
+      if(action.type==='single') singleCount++;
+      else if(action.rolls===11) elevenCount++;
+      else stepUpCount++;
+      const miss=plannerActionMissData(action,entries,uberUniverse,getSingle,true);
+      missedMask|=miss.mask; opportunities+=miss.opportunities; actionMisses.push(miss);
+    }
+    const missedCats=[];
+    uberUniverse.cats.forEach((cat,i)=>{ if((missedMask&(1n<<BigInt(i)))!==0n) missedCats.push(cat); });
+    return {singleCount,elevenCount,stepUpCount,missedMask,missedCount:missedCats.length,missedCats,opportunities,actionMisses};
+  }
+  function renderPlannerRoute(search,targets,maxDraws,entries){
+    const route=reconstructPlannerRoute(search.node),foundIds=new Set(); let cumulative=0;
+    for(const action of route) for(const h of action.hits||[]) foundIds.add(String(h.cat.id));
+    const missing=targets.filter(t=>!foundIds.has(String(t.id)));
+    const stats=analyzePlannerRoute(route,entries);
+    const modeLabel=search.mode==='saveUber'?'少錯過超激模式':'最短抽齊模式';
+    if(search.found){
+      if(search.mode==='saveUber') setPlannerStatus(`已找到少錯過超激路徑：錯過 ${stats.missedCount} 隻 Uber Rare，總計 ${search.node.cost} 抽。`,'ok');
+      else setPlannerStatus(`已找到最短路徑：${search.node.cost} 抽，單抽 ${stats.singleCount} 次，11 連 ${stats.elevenCount} 次。`,'ok');
+    } else if(search.limitHit) setPlannerStatus(`搜尋狀態過多，已停止於 ${search.expanded.toLocaleString()} 個狀態；目前最佳路線收集 ${search.node.collected}/${targets.length} 個目標。`,'warn');
+    else setPlannerStatus(`在 ${maxDraws} 抽內找不到全部目標；目前最佳路線可收集 ${search.node.collected}/${targets.length} 個。`,'warn');
+    const targetNames=targets.map(t=>esc(t.name)).join('、');
+    const stepUpChip=stats.stepUpCount?`<span class="plannerStatChip">Step-up ${stats.stepUpCount} 次</span>`:'';
+    const missedNames=stats.missedCats.map(x=>esc(x.name));
+    const missedList=missedNames.length?`<div class="plannerMissList">錯過的超激：${missedNames.join('、')}<br>一般抽位錯過機會共 ${stats.opportunities} 次（必中保底已排除）。</div>`:`<div class="plannerMissList">一般抽位沒有錯過其他已開啟卡池的 Uber Rare（必中保底已排除）。</div>`;
+    let html=`<div class="plannerResultSummary"><strong>${search.found?(search.mode==='saveUber'?'少錯過超激路徑':'最短路徑'):'目前最佳路徑'}</strong> · ${search.node.cost} 抽 · ${route.length} 個操作 · 切換 ${search.node.switches} 次<br><div class="plannerStats"><span class="plannerStatChip">單抽 ${stats.singleCount} 次</span><span class="plannerStatChip">11連 ${stats.elevenCount} 次</span>${stepUpChip}<span class="plannerStatChip uberMiss">錯過超激 ${stats.missedCount} 隻</span></div>目標：${targetNames}<br>模式：${modeLabel}<br>起始 Seed：<span class="smallCode">${esc(String(search.startSeed))}</span> · 搜尋上限 ${maxDraws} 抽 · 展開 ${search.expanded.toLocaleString()} 個狀態${missedList}${missing.length?`<div class="plannerUnfound">尚未收集：${missing.map(x=>esc(x.name)).join('、')}</div>`:''}</div>`;
+    if(!route.length){ plannerResult.innerHTML=html; return; }
+    const steps=[];
+    route.forEach((action,actionIndex)=>{
+      const start=cumulative+1; cumulative+=action.drawCost; const range=action.drawCost===1?`第 ${cumulative} 抽`:`第 ${start}–${cumulative} 抽`;
+      let main='';
+      if(action.type==='single') main=`單抽 → <b>${esc(action.result.name)}</b>${action.duplicate?'（Rare 重複，依規則重抽／換軌）':''}`;
+      else main=`${action.rolls===11?'11 連必出':'Step-up '+action.rolls+' 抽'} → 保底 <b>${esc(action.result.name)}</b>`;
+      const hits=(action.hits||[]).map(h=>`${esc(h.cat.name)}${action.drawCost>1?`（${h.isGuaranteed?'保底':`此組第 ${h.offset} 抽`}）`:''}`).join('、');
+      const miss=stats.actionMisses[actionIndex];
+      const uniqueMiss=[]; const seen=new Set();
+      for(const d of miss.details){ if(!seen.has(d.id)){seen.add(d.id);uniqueMiss.push(d.name);} }
+      const missHtml=uniqueMiss.length?`<div class="plannerRouteMiss">↳ 此操作錯過超激：${uniqueMiss.map(esc).join('、')}（${miss.opportunities} 次機會；保底不計）</div>`:'';
+      steps.push(`<div class="plannerRouteStep"><div class="plannerRouteTop"><span class="plannerRouteRange">${range}</span><span class="plannerRoutePool">${esc(action.entry.label)}</span></div><div class="plannerRouteMain">${main}</div>${hits?`<div class="plannerRouteHit">✓ 新收集：${hits}</div>`:''}${missHtml}<div class="plannerRouteSeed">Seed ${esc(String(action.startSeed))} → ${esc(String(action.nextSeed))}</div></div>`);
+    });
+    plannerResult.innerHTML=html+`<div class="plannerRoute">${steps.join('')}</div>`;
+  }
+  function updatePlannerModeHint(){
+    const mode=plannerOptimizationModeValue();
+    if(mode==='saveUber') plannerModeHint.textContent='先讓「錯過的不同 Uber Rare 角色數」最少，再比較總抽數、切換卡池次數；必中保底不算錯過。';
+    else plannerModeHint.textContent='優先讓總抽數最少；同抽數時優先較少切換卡池。仍會顯示這條路線錯過的 Uber Rare。';
+  }
+  function calculatePlannerRoute(){
+    try{
+      refreshPlannerCharacters(false);
+      const targets=plannerCharacters.filter(c=>plannerSelectedIds.has(c.id));
+      if(!targets.length) throw new Error('請至少選擇 1 個目標角色。');
+      const entries=plannerPoolEntries(); if(!entries.length) throw new Error('目前沒有可計算的卡池。');
+      const maxDraws=clampInt(futureInput.value,1,1000,'未來位數');
+      const mode=plannerOptimizationModeValue();
+      plannerSearchLimit.textContent=`最多 ${maxDraws} 抽`;
+      plannerCalcBtn.disabled=true; setPlannerStatus(mode==='saveUber'?'正在搜尋少錯過超激的路徑…':'正在搜尋最短路徑…'); plannerResult.innerHTML='';
+      const signature=`${seedInput.value}|${currentLastCatId??''}|${entries.map(e=>e.key).join(',')}|${targets.map(t=>t.id).join(',')}|${maxDraws}|${mode}`;
+      const result=plannerRouteSearch(entries,targets,maxDraws,mode);
+      plannerLastSignature=signature;
+      renderPlannerRoute(result,targets,maxDraws,entries);
+    }catch(e){ setPlannerStatus(e.message||String(e),'err'); plannerResult.innerHTML=''; }
+    finally{ plannerCalcBtn.disabled=plannerSelectedIds.size===0 || !plannerCharacters.length; }
   }
 
   function normalizeCat(v,rarity,index) {
@@ -1576,7 +1980,7 @@
           if(!firstError) firstError=e;
         }
       }
-      if(ok){ refreshCrossPanelWarnings(); saveSessionPrefs(); setStatus(`已更新 ${ok} 張比較表。`,'ok'); }
+      if(ok){ refreshCrossPanelWarnings(); saveSessionPrefs(); refreshPlannerCharacters(); setStatus(`已更新 ${ok} 張比較表。`,'ok'); }
       else throw firstError || new Error('沒有可計算的比較表。');
     }catch(e){setStatus(esc(e.message||e),'err');}
   }
@@ -1623,19 +2027,36 @@
     calculate();
   }
 
+  function updateLeftRailVisibility(){
+    const anyVisible=!settingsPanel.classList.contains('hidden') || !plannerPanel.classList.contains('hidden');
+    leftRail.classList.toggle('hidden',!anyVisible);
+    appGrid.classList.toggle('settingsCollapsed',!anyVisible);
+  }
   function setSettingsVisible(show){
-    appGrid.classList.toggle('settingsCollapsed',!show);
+    settingsPanel.classList.toggle('hidden',!show);
     settingsToggle.setAttribute('aria-expanded',show?'true':'false');
     settingsToggle.querySelector('span').textContent=show?'隱藏設定':'顯示設定';
     try{localStorage.setItem('battle-cats-settings-visible-v1',show?'1':'0');}catch(_){ }
+    updateLeftRailVisibility();
   }
-  settingsToggle.addEventListener('click',()=>setSettingsVisible(appGrid.classList.contains('settingsCollapsed')));
+  function setPlannerVisible(show){
+    plannerPanel.classList.toggle('hidden',!show);
+    plannerToggle.classList.toggle('plannerToggleActive',show);
+    plannerToggle.setAttribute('aria-expanded',show?'true':'false');
+    plannerToggle.querySelector('span').textContent=show?'隱藏收集規劃':'顯示收集規劃';
+    try{localStorage.setItem('battle-cats-planner-visible-v1',show?'1':'0');}catch(_){ }
+    if(show) refreshPlannerCharacters(false);
+    updateLeftRailVisibility();
+  }
+  settingsToggle.addEventListener('click',()=>setSettingsVisible(settingsPanel.classList.contains('hidden')));
+  plannerToggle.addEventListener('click',()=>setPlannerVisible(plannerPanel.classList.contains('hidden')));
   document.addEventListener('click',(ev)=>{
     if(!ev.target.closest('.panelEventArea')) closeEventPickers();
   });
   document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape') closeEventPickers();});
   window.addEventListener('resize',()=>{for(const p of panelStates){if(p.eventMenu?.classList.contains('open')) positionEventMenu(p);}});
   try{setSettingsVisible(localStorage.getItem('battle-cats-settings-visible-v1')!=='0');}catch(_){setSettingsVisible(true);}
+  try{setPlannerVisible(localStorage.getItem('battle-cats-planner-visible-v1')==='1');}catch(_){setPlannerVisible(false);}
 
   updateDataBtn.addEventListener('click',updateGitlabData);
   calcBtn.addEventListener('click',calculate);
@@ -1651,10 +2072,23 @@
   $('sampleBtn').addEventListener('click',()=>{poolInput.value=sampleData;setStatus('已載入手動示範資料。');});
   $('saveManualBtn').addEventListener('click',()=>{storageSet(MANUAL_CACHE_KEY,poolInput.value);setStatus('手動卡池已儲存在本機瀏覽器。','ok');});
   seedInput.addEventListener('keydown',e=>{if(e.key==='Enter')calculate();});
-  seedInput.addEventListener('input',()=>{ currentLastCatId=null; saveSessionPrefs(); });
+  seedInput.addEventListener('input',()=>{ currentLastCatId=null; saveSessionPrefs(); plannerSearchLimit.textContent=`最多 ${String(futureInput.value||'?')} 抽`; invalidatePlannerResult('Seed 已變更，請重新計算。'); });
   pastInput.addEventListener('change',()=>{saveRangePrefs();calculate();});
-  futureInput.addEventListener('change',()=>{saveRangePrefs();calculate();});
+  futureInput.addEventListener('change',()=>{saveRangePrefs();plannerSearchLimit.textContent=`最多 ${String(futureInput.value||'?')} 抽`;calculate();});
 
+  plannerSearch.addEventListener('input',renderPlannerCharacterList);
+  plannerRarityFilter.addEventListener('change',renderPlannerCharacterList);
+  plannerOptimizationMode.addEventListener('change',()=>{updatePlannerModeHint();invalidatePlannerResult('最佳化模式已變更，請重新計算。');});
+  plannerCharacterList.addEventListener('change',e=>{
+    const cb=e.target.closest('.plannerTargetCheck'); if(!cb) return;
+    const id=String(cb.dataset.targetId||'');
+    if(cb.checked) plannerSelectedIds.add(id); else plannerSelectedIds.delete(id);
+    renderPlannerCharacterList(); invalidatePlannerResult();
+  });
+  plannerClearBtn.addEventListener('click',()=>{plannerSelectedIds.clear();renderPlannerCharacterList();invalidatePlannerResult();});
+  plannerCalcBtn.addEventListener('click',calculatePlannerRoute);
+
+  updatePlannerModeHint();
   loadRangePrefs();
   const startupSession=loadSessionPrefs();
   seedInput.value=startupSession.seed || '373531645';
