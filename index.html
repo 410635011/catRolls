@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Battle Cats Seed Tracker v23</title>
+<title>Battle Cats Seed Tracker v32</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -97,7 +97,17 @@
   .pageHeader{padding-left:16px;padding-right:8px}
   .compareWorkspace{min-width:0}
   .compareTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding-right:2px}
+  .compareTopTitleRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .compareTopTitle{font-size:14px;font-weight:800;color:#344054}
+  .plannerRouteLegendControls{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .compareLegend{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:#667085;font-weight:650}
+  .compareLegendItem{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  .compareLegendSwatch{width:10px;height:10px;border-radius:3px;border:1px solid rgba(0,0,0,.12);display:inline-block;flex:0 0 10px}
+  .compareLegendSwatch.guaranteed{background:#f8d9df;border-color:rgba(183,77,98,.26)}
+  .compareLegendSwatch.target{background:#ffe8a3;border-color:rgba(183,135,19,.28)}
+  .compareLegendSwatch.route{background:#dcebf3;border-color:rgba(47,103,129,.24)}
+  .clearPlannerMarksBtn{padding:4px 8px;border:1px solid #d6dde3;border-radius:7px;background:#fff;color:#60717f;font-size:10.5px;font-weight:750;line-height:1.2;white-space:nowrap}
+  .clearPlannerMarksBtn:hover{background:#f3f6f8;color:#344054;border-color:#c3cdd5}
   .compareTopHint{font-size:11px;color:var(--muted);margin-top:2px}
   .addCompareBtn{background:#eef4f8;color:var(--accent);border:1px solid #c9d8e2;padding:8px 12px}
   .comparePanels{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;overscroll-behavior-x:contain;padding:0 2px 10px 0;scrollbar-gutter:stable}
@@ -409,16 +419,90 @@
   .plannerRouteMiss{margin-top:4px;font-size:10.5px;line-height:1.4;color:#a05262}
   .plannerLimitLine{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#7a8793}.plannerLimitLine b{color:#475467}
   .plannerCalcBtn{width:100%;background:var(--accent);color:#fff}.plannerCalcBtn:disabled{opacity:.55}
+  .plannerBusy{display:none;align-items:center;justify-content:center;gap:7px;min-height:22px;margin-top:-2px;padding:2px 0 0;color:#657786;font-size:10.8px;font-weight:700;line-height:1.2}
+  .plannerBusy.active{display:flex}
+  .plannerBusySpinner{width:13px;height:13px;flex:0 0 13px;border:2px solid #d9e1e6;border-top-color:var(--accent);border-radius:50%;animation:plannerBusySpin .72s linear infinite}
+  @keyframes plannerBusySpin{to{transform:rotate(360deg)}}
   .plannerStatus{margin-top:8px;padding:9px 10px;border-radius:10px;background:#f6f8fa;color:#667085;font-size:11.5px;line-height:1.5}
   .plannerStatus.ok{background:#ecfdf3;color:var(--ok)}.plannerStatus.err{background:#fef3f2;color:var(--danger)}.plannerStatus.warn{background:#fffaeb;color:var(--warn)}
   .plannerResult{margin-top:8px}.plannerResultSummary{padding:9px 10px;border:1px solid #dfe5ea;border-radius:10px;background:#fbfcfd;font-size:11.5px;line-height:1.55;color:#475467}
   .plannerResultSummary strong{color:#2f607f}.plannerRoute{margin-top:7px;max-height:40vh;overflow:auto;border:1px solid #e0e5ea;border-radius:10px;background:#fff}
   .plannerRouteStep{padding:8px 9px;border-bottom:1px solid #eef1f3}.plannerRouteStep:last-child{border-bottom:0}.plannerRouteTop{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}.plannerRouteRange{font-weight:800;color:#2f607f}.plannerRoutePool{font-weight:750;color:#536675;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .plannerRouteMain{margin-top:4px;font-size:11.5px;line-height:1.45;color:#344054}.plannerRouteHit{margin-top:4px;font-size:10.8px;line-height:1.4;color:#7c5d32}.plannerRouteSeed{margin-top:4px;font-size:10px;color:#8a96a2;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+  .plannerRouteMain{margin-top:4px;font-size:11.5px;line-height:1.45;color:#344054}.plannerRouteHit{margin-top:4px;font-size:10.8px;line-height:1.4;color:#7c5d32}.plannerRoutePosition{margin-top:5px;padding-top:5px;border-top:1px dashed #e5eaee;font-size:11px;color:#61798a;font-weight:750}
   .plannerUnfound{margin-top:6px;color:#9b7440}.plannerTiny{font-size:10.5px;color:#8a96a2;line-height:1.45}
+  .plannerElevenToggle{display:flex;align-items:center;gap:7px;margin:0!important;font-size:11.5px!important;font-weight:700;color:#475467!important;cursor:pointer}
+  .plannerElevenToggle input{margin:0}
+  .plannerElevenLimitRow{display:grid;grid-template-columns:auto 76px auto;align-items:center;gap:7px;margin-top:7px;font-size:11px;color:#667085}
+  .plannerElevenLimitRow input{min-height:34px;padding:6px 8px;text-align:center;font-size:11.5px}
+  .plannerElevenLimitRow.disabled{opacity:.55}
+  .plannerOutputPanel{margin-top:12px;padding:16px;min-height:180px}
+  .plannerOutputHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:10px}
+  .plannerOutputTitle{font-size:14px;font-weight:820;color:#344054}
+  .plannerOutputHint{font-size:10.8px;line-height:1.4;color:#7b8794;text-align:right}
+  .plannerOutputPanel .plannerResult{margin-top:0}
+  .plannerOutputPanel .plannerResultSummary{font-size:12px;line-height:1.65;padding:11px 12px}
+  .plannerOutputPanel .plannerRoute{max-height:none;overflow:visible;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:8px;border:0;background:transparent}
+  .plannerOutputPanel .plannerRouteStep{border:1px solid #e0e5ea;border-radius:10px;background:#fff;padding:10px 11px}
+  .plannerOutputPanel .plannerRouteTop{font-size:11.5px}
+  .plannerOutputPanel .plannerRouteMain{font-size:12px}
+  .plannerOutputPanel .plannerRouteHit,.plannerOutputPanel .plannerRouteMiss{font-size:11px}
+  @media(max-width:720px){.plannerOutputPanel{padding:12px}.plannerOutputHead{align-items:flex-start;flex-direction:column}.plannerOutputHint{text-align:left}.plannerOutputPanel .plannerRoute{grid-template-columns:1fr}}
   @media(max-width:720px){
     .leftRail{position:static;top:auto;max-height:none;overflow:visible}.plannerCharacterList{max-height:52vh}.plannerControls{grid-template-columns:1fr 105px}
   }
+
+
+  /* v28: collection planner route is rendered directly on the draw tables */
+  .plannerOutputPanel{display:none!important}
+  .plannerTableRouteNote{display:none!important;margin:0;padding:7px 10px;border-bottom:1px solid #d9e3e9;background:#f4f8fa;color:#4f6575;font-size:11px;line-height:1.45}
+  .plannerTableRouteNote.active{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .plannerTableRouteTitle{font-weight:800;color:#2f607f}
+  .plannerTableRouteMeta{color:#70818e}
+  .plannerTableRouteLegend{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .plannerTableRouteLegend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  .plannerTableRouteLegend i{display:inline-block;width:9px;height:9px;border-radius:3px;border:1px solid rgba(0,0,0,.12)}
+  .plannerTableRouteLegend .draw{background:#dcebf3}.plannerTableRouteLegend .target{background:#ffe8a3}.plannerTableRouteLegend .guaranteed{background:#f8d9df}
+  .planner-route-cell{position:relative!important;isolation:isolate;box-shadow:inset 4px 0 0 #5f8faa!important}
+  .planner-route-cell::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:rgba(86,145,177,.16)}
+  .planner-route-cell.route-target{box-shadow:inset 4px 0 0 #d1a128, inset 0 0 0 2px rgba(209,161,40,.72)!important}
+  .planner-route-cell.route-target::before{background:rgba(247,205,78,.24)}
+  .planner-route-cell.route-guaranteed{box-shadow:inset 4px 0 0 #c96174!important}
+  .planner-route-cell.route-guaranteed::before{background:rgba(210,88,108,.18)}
+  .planner-route-cell.route-target.route-guaranteed{box-shadow:inset 4px 0 0 #c96174, inset 0 0 0 2px rgba(209,161,40,.82)!important}
+  .planner-route-cell>*{position:relative;z-index:2}
+  .plannerRouteBadge{position:absolute!important;z-index:6!important;left:3px;top:2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#2f6781;color:#fff;font-size:9.5px;font-weight:850;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(30,56,72,.22);pointer-events:none}
+  .planner-route-cell.route-target .plannerRouteBadge{background:#b78713}
+  .planner-route-cell.route-guaranteed .plannerRouteBadge{background:#b74d62}
+  .plannerRouteTargetTag{position:absolute!important;z-index:6!important;right:2px;top:2px;max-width:calc(100% - 30px);padding:2px 5px;border-radius:5px;background:rgba(255,248,220,.95);color:#8b6813;border:1px solid rgba(185,139,25,.28);font-size:8.8px;font-weight:800;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+  .plannerRouteActionTag{position:absolute!important;z-index:6!important;left:3px;bottom:2px;max-width:calc(100% - 6px);padding:1px 4px;border-radius:4px;background:rgba(255,255,255,.88);color:#537084;border:1px solid rgba(72,111,134,.22);font-size:8.5px;font-weight:750;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+  .planner-route-no{position:relative!important;background:#eaf3f7!important;color:#285a75!important;font-weight:800!important;box-shadow:inset 3px 0 0 #5f8faa}
+  .planner-route-no.route-target{background:#fff2bd!important;box-shadow:inset 3px 0 0 #d1a128}
+  @media(max-width:720px){.plannerTableRouteNote{font-size:10.5px}.plannerRouteBadge{min-width:17px;height:17px;line-height:17px;font-size:9px}.plannerRouteTargetTag,.plannerRouteActionTag{font-size:8px}}
+
+
+  /* v32: distinct comparison-table colors + planner rows colored when a character exists in only one table */
+  :root{
+    --table1:#7356a8;--table1-bg:#f0ebfa;--table1-bg-hover:#e9e1f8;--table1-border:#d4c5ee;
+    --table2:#287a71;--table2-bg:#e8f5f2;--table2-bg-hover:#ddf0ec;--table2-border:#bfe2da;
+    --table3:#a86a2d;--table3-bg:#fff1e1;--table3-bg-hover:#fbe7cf;--table3-border:#efcda7;
+  }
+  .compareBadge.table-1{background:var(--table1-bg);color:var(--table1);border:1px solid var(--table1-border)}
+  .compareBadge.table-2{background:var(--table2-bg);color:var(--table2);border:1px solid var(--table2-border)}
+  .compareBadge.table-3{background:var(--table3-bg);color:var(--table3);border:1px solid var(--table3-border)}
+  .plannerPoolBadge.table-1,.plannerGroupTableBadge.table-1{background:var(--table1-bg);color:var(--table1);border:1px solid var(--table1-border)}
+  .plannerPoolBadge.table-2,.plannerGroupTableBadge.table-2{background:var(--table2-bg);color:var(--table2);border:1px solid var(--table2-border)}
+  .plannerPoolBadge.table-3,.plannerGroupTableBadge.table-3{background:var(--table3-bg);color:var(--table3);border:1px solid var(--table3-border)}
+  .plannerGroupTableBadge{display:inline-flex;align-items:center;margin-left:4px;padding:1px 5px;border-radius:999px;font-size:9.5px;font-weight:850;line-height:1.35;vertical-align:1px}
+
+  .plannerCatRow.pool-only-1{background:var(--table1-bg)}
+  .plannerCatRow.pool-only-2{background:var(--table2-bg)}
+  .plannerCatRow.pool-only-3{background:var(--table3-bg)}
+  .plannerCatRow.pool-only-1:hover{background:var(--table1-bg-hover)}
+  .plannerCatRow.pool-only-2:hover{background:var(--table2-bg-hover)}
+  .plannerCatRow.pool-only-3:hover{background:var(--table3-bg-hover)}
+  .plannerCatRow.pool-only-1.selected{background:var(--table1-bg-hover);box-shadow:inset 3px 0 0 var(--table1)}
+  .plannerCatRow.pool-only-2.selected{background:var(--table2-bg-hover);box-shadow:inset 3px 0 0 var(--table2)}
+  .plannerCatRow.pool-only-3.selected{background:var(--table3-bg-hover);box-shadow:inset 3px 0 0 var(--table3)}
 
 </style>
 </head>
@@ -512,29 +596,52 @@
           <label for="plannerOptimizationMode">路徑最佳化模式</label>
           <select id="plannerOptimizationMode">
             <option value="shortest">最短抽齊（總抽數優先）</option>
-            <option value="saveUber">少錯過超激（Uber Rare）</option>
+            <option value="saveUber">少錯過超激（傳說稀有優先）</option>
           </select>
           <div class="plannerModeHint" id="plannerModeHint">優先讓總抽數最少；同抽數時優先較少切換卡池。</div>
         </div>
+        <div class="plannerModeBox">
+          <label>11 連抽限制</label>
+          <label class="plannerElevenToggle"><input id="plannerLimitElevenEnabled" type="checkbox"> 限制最多 11 連次數</label>
+          <div class="plannerElevenLimitRow disabled" id="plannerElevenLimitRow"><span>最多</span><input id="plannerMaxEleven" type="number" min="0" max="90" value="3" disabled><span>次 11 連</span></div>
+          <div class="plannerModeHint">只限制「11 連必中」操作；Step-up 不計入這個上限。</div>
+        </div>
         <div class="plannerLimitLine"><span>最長搜尋距離</span><b id="plannerSearchLimit">沿用「未來位數」</b></div>
         <button type="button" class="plannerCalcBtn" id="plannerCalcBtn">計算收集路徑</button>
-        <div class="plannerTiny">錯過超激只計算一般抽位：比較目前已開啟卡池在同一抽位可能出現的 Uber Rare；11 連／Step-up 最後的必中保底不列入錯過統計。</div>
+        <div class="plannerBusy" id="plannerBusy" role="status" aria-live="polite"><span class="plannerBusySpinner" aria-hidden="true"></span><span id="plannerBusyText">計算中…</span></div>
+        <div class="plannerTiny">所有勾選角色都是「硬性收集目標」。在「少錯過超激」模式中，若同一抽位於不同表出現重疊，會先保護尚未蒐集的勾選角色；只有在不犧牲勾選角色優先權的前提下，才比較未勾選 Uber Rare 的錯過數，再比較總抽數。11 連／Step-up 最後的必中保底不列入一般抽位錯過統計。</div>
         <div id="plannerStatus" class="plannerStatus">先選擇想收集的角色。</div>
-        <div id="plannerResult" class="plannerResult"></div>
+        <div class="plannerTiny">計算結果會顯示在頁面下方的大型結果區塊。</div>
       </div>
     </aside>
     </div>
 
     <main class="compareWorkspace">
       <div class="compareTop">
-        <div>
+        <div class="compareTopTitleRow">
           <div class="compareTopTitle">活動比較</div>
+          <div class="plannerRouteLegendControls hidden" id="plannerRouteLegendControls">
+            <div class="compareLegend" aria-label="蒐集路徑顏色說明">
+              <span class="compareLegendItem"><i class="compareLegendSwatch guaranteed"></i>紅色＝保底</span>
+              <span class="compareLegendItem"><i class="compareLegendSwatch target"></i>黃色＝指定蒐集</span>
+              <span class="compareLegendItem"><i class="compareLegendSwatch route"></i>藍色＝路徑</span>
+            </div>
+            <button type="button" class="clearPlannerMarksBtn" id="clearPlannerMarksBtn">解除蒐集規劃標示</button>
+          </div>
         </div>
         <button class="addCompareBtn" id="addCompareBtn">＋ 新增比較表</button>
       </div>
       <div id="comparePanels" class="comparePanels"></div>
     </main>
   </div>
+
+  <section class="card plannerOutputPanel hidden" id="plannerOutputPanel">
+    <div class="plannerOutputHead">
+      <div class="plannerOutputTitle">角色收集路徑結果</div>
+      <div class="plannerOutputHint">每個操作以 A／B 軌位置顯示，不再顯示 Seed。</div>
+    </div>
+    <div id="plannerResult" class="plannerResult"></div>
+  </section>
 </div>
 
 <script>
@@ -547,6 +654,7 @@
   const MANUAL_CACHE_KEY = 'battle-cats-manual-pool-v2';
   const RANGE_PREF_KEY = 'battle-cats-range-prefs-v1';
   const SESSION_PREF_KEY = 'battle-cats-session-prefs-v1';
+  const PLANNER_PREF_KEY = 'battle-cats-planner-prefs-v1';
   const DATA_URLS = [
     'https://gitlab.com/godfat/battle-cats-rolls/-/raw/master/build/bc-tw.yaml',
     'https://gitlab.com/api/v4/projects/godfat%2Fbattle-cats-rolls/repository/files/build%2Fbc-tw.yaml/raw?ref=master'
@@ -559,12 +667,15 @@
   const updateDataBtn = $('updateDataBtn'), dataMeta = $('dataMeta'), calcBtn = $('calcBtn');
   const gitlabPanel = $('gitlabPanel'), manualPanel = $('manualPanel');
   const comparePanelsEl = $('comparePanels'), addCompareBtn = $('addCompareBtn');
+  const plannerRouteLegendControls = $('plannerRouteLegendControls'), clearPlannerMarksBtn = $('clearPlannerMarksBtn');
   const appGrid = $('appGrid'), settingsToggle = $('settingsToggle');
   const leftRail = $('leftRail'), settingsPanel = $('settingsPanel'), plannerPanel = $('plannerPanel'), plannerToggle = $('plannerToggle');
   const plannerSearch = $('plannerSearch'), plannerRarityFilter = $('plannerRarityFilter'), plannerCharacterList = $('plannerCharacterList');
   const plannerSourceMeta = $('plannerSourceMeta'), plannerSelectedCount = $('plannerSelectedCount'), plannerListMeta = $('plannerListMeta');
   const plannerClearBtn = $('plannerClearBtn'), plannerCalcBtn = $('plannerCalcBtn'), plannerStatus = $('plannerStatus'), plannerResult = $('plannerResult'), plannerSearchLimit = $('plannerSearchLimit');
   const plannerOptimizationMode = $('plannerOptimizationMode'), plannerModeHint = $('plannerModeHint');
+  const plannerLimitElevenEnabled = $('plannerLimitElevenEnabled'), plannerMaxEleven = $('plannerMaxEleven'), plannerElevenLimitRow = $('plannerElevenLimitRow'), plannerOutputPanel = $('plannerOutputPanel');
+  const plannerBusy = $('plannerBusy'), plannerBusyText = $('plannerBusyText');
 
   let battleData = null;
   let visibleEvents = [];
@@ -604,6 +715,33 @@
     if(Number.isInteger(p)&&p>=0&&p<=200&&Number.isInteger(f)&&f>=1&&f<=1000){
       storageSet(RANGE_PREF_KEY,JSON.stringify({past:p,future:f}));
     }
+  }
+  function loadPlannerPrefs(){
+    try{
+      const raw=storageGet(PLANNER_PREF_KEY); if(!raw) return;
+      const v=JSON.parse(raw);
+      plannerLimitElevenEnabled.checked=!!v?.limitEleven;
+      if(Number.isInteger(v?.maxEleven)&&v.maxEleven>=0&&v.maxEleven<=90) plannerMaxEleven.value=String(v.maxEleven);
+    }catch(_){ }
+    syncPlannerElevenLimitUi();
+  }
+  function savePlannerPrefs(){
+    const maxEleven=Number(plannerMaxEleven.value);
+    storageSet(PLANNER_PREF_KEY,JSON.stringify({limitEleven:!!plannerLimitElevenEnabled.checked,maxEleven:Number.isInteger(maxEleven)?maxEleven:3}));
+  }
+  function syncPlannerElevenLimitUi(){
+    const enabled=!!plannerLimitElevenEnabled.checked;
+    plannerMaxEleven.disabled=!enabled;
+    plannerElevenLimitRow.classList.toggle('disabled',!enabled);
+  }
+  function plannerElevenLimitValue(){
+    if(!plannerLimitElevenEnabled.checked) return null;
+    return clampInt(plannerMaxEleven.value,0,90,'11 連次數上限');
+  }
+  function updatePlannerOutputVisibility(){
+    const hasResult=!!plannerResult.innerHTML.trim();
+    const plannerVisible=!plannerPanel.classList.contains('hidden');
+    plannerOutputPanel.classList.toggle('hidden',!plannerVisible || !hasResult);
   }
   function loadSessionPrefs(){
     try{
@@ -1045,6 +1183,9 @@
     panelStates.forEach((panel,index)=>{
       panel.index=index+1;
       panel.badge.textContent=`表${index+1}`;
+      panel.badge.classList.remove('table-1','table-2','table-3');
+      panel.badge.classList.add(`table-${index+1}`);
+      panel.badge.dataset.tableIndex=String(index+1);
       panel.removeBtn.title=`移除表${index+1}`;
       panel.removeBtn.classList.toggle('hidden',panelStates.length===1);
     });
@@ -1192,6 +1333,13 @@
     plannerStatus.textContent=String(message||'');
     plannerStatus.className='plannerStatus'+(type?' '+type:'');
   }
+  function setPlannerBusy(active,text='計算中…'){
+    if(!plannerBusy) return;
+    plannerBusy.classList.toggle('active',!!active);
+    plannerBusy.setAttribute('aria-hidden',active?'false':'true');
+    if(plannerBusyText) plannerBusyText.textContent=String(text||'計算中…');
+  }
+  function plannerUiYield(){ return new Promise(resolve=>setTimeout(resolve,0)); }
   function plannerPanelLabel(panel){
     if(currentMode()==='gitlab'){
       const e=getSelectedEventForPanel(panel);
@@ -1215,26 +1363,52 @@
   }
   function plannerCharacterKey(cat){ return String(cat?.id ?? ''); }
   function plannerRarityOrder(r){ return ({legend:0,uber:1,super:2,rare:3})[r] ?? 9; }
+  function plannerIdOrder(id){
+    const n=Number(id);
+    return Number.isFinite(n)?n:Number.MAX_SAFE_INTEGER;
+  }
+  function plannerCharacterSort(a,b){
+    const rarityDiff=plannerRarityOrder(a.rarity)-plannerRarityOrder(b.rarity);
+    if(rarityDiff) return rarityDiff;
+    if(a.rarity==='rare' || a.rarity==='super'){
+      return plannerIdOrder(a.id)-plannerIdOrder(b.id) || String(a.id).localeCompare(String(b.id),undefined,{numeric:true}) || a.name.localeCompare(b.name,'zh-Hant');
+    }
+    if(a.rarity==='uber'){
+      const ap=a.pools?.[0], bp=b.pools?.[0];
+      return (ap?.index??999)-(bp?.index??999) || (ap?.order??99999)-(bp?.order??99999) || plannerIdOrder(a.id)-plannerIdOrder(b.id);
+    }
+    return plannerIdOrder(a.id)-plannerIdOrder(b.id) || a.name.localeCompare(b.name,'zh-Hant');
+  }
   function refreshPlannerCharacters(clearRoute=true){
     const entries=plannerPoolEntries();
     const map=new Map();
     for(const entry of entries){
       for(const rarity of ['legend','uber','super','rare']){
-        for(const cat of entry.pool[rarity]||[]){
-          const key=plannerCharacterKey(cat); if(!key || key==='-1') continue;
+        (entry.pool[rarity]||[]).forEach((cat,order)=>{
+          const key=plannerCharacterKey(cat); if(!key || key==='-1') return;
           let item=map.get(key);
           if(!item){ item={id:key,name:String(cat.name||key),rarity,pools:[]}; map.set(key,item); }
-          if(!item.pools.some(x=>x.key===entry.key)) item.pools.push({key:entry.key,index:entry.panel.index,label:entry.label});
-        }
+          if(!item.pools.some(x=>x.key===entry.key)) item.pools.push({key:entry.key,index:entry.panel.index,label:entry.label,order});
+        });
       }
     }
-    plannerCharacters=[...map.values()].sort((a,b)=>plannerRarityOrder(a.rarity)-plannerRarityOrder(b.rarity) || a.name.localeCompare(b.name,'zh-Hant') || a.id.localeCompare(b.id));
+    plannerCharacters=[...map.values()].sort(plannerCharacterSort);
     const available=new Set(plannerCharacters.map(x=>x.id));
     for(const id of [...plannerSelectedIds]) if(!available.has(id)) plannerSelectedIds.delete(id);
     plannerSourceMeta.innerHTML=entries.length ? entries.map(e=>`<div>${esc(e.label)}</div>`).join('') : '目前沒有可用卡池。';
     renderPlannerCharacterList();
     plannerSearchLimit.textContent=`最多 ${String(futureInput.value||'?')} 抽`;
     if(clearRoute) invalidatePlannerResult('卡池或種子狀態已更新，請重新計算。');
+  }
+  function plannerCharacterExclusiveTable(c){
+    const indices=[...new Set((c?.pools||[]).map(p=>Number(p.index)).filter(n=>Number.isInteger(n)&&n>=1&&n<=MAX_PANELS))];
+    return indices.length===1 ? indices[0] : 0;
+  }
+  function plannerCharacterRow(c,badgesHtml=''){
+    const selected=plannerSelectedIds.has(c.id);
+    const exclusiveTable=plannerCharacterExclusiveTable(c);
+    const exclusiveClass=exclusiveTable ? ` pool-only-${exclusiveTable}` : '';
+    return `<label class="plannerCatRow${exclusiveClass}${selected?' selected':''}"${exclusiveTable?` data-exclusive-table="${exclusiveTable}"`:''}><input class="plannerTargetCheck" type="checkbox" data-target-id="${esc(c.id)}"${selected?' checked':''}><span class="plannerCatName" title="${esc(c.name)}">${esc(c.name)}</span><span class="plannerCatMeta"><span class="plannerRarity ${esc(c.rarity)}">${esc(rarityLabel(c.rarity))}</span>${badgesHtml}</span></label>`;
   }
   function renderPlannerCharacterList(){
     const q=plannerSearch.value.trim().toLowerCase();
@@ -1245,20 +1419,43 @@
     plannerClearBtn.disabled=plannerSelectedIds.size===0;
     plannerCalcBtn.disabled=plannerSelectedIds.size===0 || !plannerCharacters.length;
     if(!filtered.length){ plannerCharacterList.innerHTML='<div class="plannerEmpty">目前篩選條件下沒有角色。</div>'; return; }
+
     const groups=[];
-    for(const r of ['legend','uber','super','rare']){
-      const items=filtered.filter(c=>c.rarity===r); if(!items.length) continue;
-      const rows=items.map(c=>{
-        const selected=plannerSelectedIds.has(c.id);
-        const badges=c.pools.map(p=>`<span class="plannerPoolBadge">表${p.index}</span>`).join('');
-        return `<label class="plannerCatRow${selected?' selected':''}"><input class="plannerTargetCheck" type="checkbox" data-target-id="${esc(c.id)}"${selected?' checked':''}><span class="plannerCatName" title="${esc(c.name)}">${esc(c.name)}</span><span class="plannerCatMeta"><span class="plannerRarity ${esc(c.rarity)}">${esc(rarityLabel(c.rarity))}</span>${badges}</span></label>`;
-      }).join('');
+    const legendItems=filtered.filter(c=>c.rarity==='legend').sort(plannerCharacterSort);
+    if(legendItems.length){
+      const rows=legendItems.map(c=>plannerCharacterRow(c,c.pools.map(p=>`<span class="plannerPoolBadge table-${p.index}">表${p.index}</span>`).join(''))).join('');
+      groups.push(`<div class="plannerGroup"><div class="plannerGroupTitle"><span>Legend Rare</span><span>${legendItems.length}</span></div>${rows}</div>`);
+    }
+
+    const uberItems=filtered.filter(c=>c.rarity==='uber');
+    if(uberItems.length){
+      const entries=plannerPoolEntries().slice().sort((a,b)=>a.panel.index-b.panel.index);
+      for(const entry of entries){
+        const items=uberItems
+          .filter(c=>c.pools.some(p=>p.key===entry.key))
+          .slice()
+          .sort((a,b)=>{
+            const ap=a.pools.find(p=>p.key===entry.key), bp=b.pools.find(p=>p.key===entry.key);
+            return (ap?.order??99999)-(bp?.order??99999) || plannerIdOrder(a.id)-plannerIdOrder(b.id);
+          });
+        if(!items.length) continue;
+        const rows=items.map(c=>plannerCharacterRow(c)).join('');
+        groups.push(`<div class="plannerGroup"><div class="plannerGroupTitle"><span>Uber Rare <span class="plannerGroupTableBadge table-${entry.panel.index}">表${entry.panel.index}</span></span><span>${items.length}</span></div>${rows}</div>`);
+      }
+    }
+
+    for(const r of ['super','rare']){
+      const items=filtered.filter(c=>c.rarity===r).slice().sort((a,b)=>plannerIdOrder(a.id)-plannerIdOrder(b.id) || String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
+      if(!items.length) continue;
+      const rows=items.map(c=>plannerCharacterRow(c,c.pools.map(p=>`<span class="plannerPoolBadge table-${p.index}">表${p.index}</span>`).join(''))).join('');
       groups.push(`<div class="plannerGroup"><div class="plannerGroupTitle"><span>${esc(rarityLabel(r))}</span><span>${items.length}</span></div>${rows}</div>`);
     }
     plannerCharacterList.innerHTML=groups.join('');
   }
   function invalidatePlannerResult(message='選擇目標後計算最短路徑。'){
     plannerResult.innerHTML='';
+    clearPlannerTableRoute();
+    updatePlannerOutputVisibility();
     if(plannerSelectedIds.size) setPlannerStatus(message,'');
     else setPlannerStatus('先選擇想收集的角色。','');
   }
@@ -1339,14 +1536,58 @@
     }
     return {mask,opportunities,details};
   }
-  function plannerRouteSearch(entries,targets,maxDraws,mode='shortest'){
+  function plannerActionTargetMissMask(action,entries,targetIndex,getSingle){
+    if(!action) return 0n;
+    let seed=u32(action.startSeed), lastId=action.startLastId==null?null:String(action.startLastId), mask=0n;
+    const regularCount=action.type==='guaranteed'?Math.max(0,(action.rolls||action.drawCost||0)-1):1;
+    for(let i=0;i<regularCount;i++){
+      const chosen=getSingle(action.entry,seed,lastId); if(!chosen) break;
+      const chosenId=String(chosen.result?.id??'');
+      for(const altEntry of entries){
+        if(altEntry.key===action.entry.key) continue;
+        const alt=getSingle(altEntry,seed,lastId); if(!alt) continue;
+        const id=String(alt.result?.id??'');
+        if(!id || id==='-1' || id===chosenId) continue;
+        const idx=targetIndex.get(id); if(idx==null) continue;
+        mask|=1n<<BigInt(idx);
+      }
+      seed=chosen.nextSeed; lastId=chosen.nextLastId;
+    }
+    return mask;
+  }
+  async function plannerRouteSearch(entries,targets,maxDraws,mode='shortest',maxEleven=null,onProgress=null){
     const targetIndex=new Map(targets.map((t,i)=>[String(t.id),i]));
+    const targetLegendMask=targets.reduce((m,t,i)=>t.rarity==='legend'?(m|(1n<<BigInt(i))):m,0n);
     const goal=(1n<<BigInt(targets.length))-1n;
     const startSeed=readSeed(), startLast=currentLastCatId==null?null:String(currentLastCatId);
-    const uberUniverse=plannerUberUniverse(entries), saveUber=mode==='saveUber';
+    const uberUniverse=plannerUberUniverse(entries), saveUber=mode==='saveUber', elevenLimit=Number.isInteger(maxEleven)&&maxEleven>=0?maxEleven:null;
+    const targetUberUniverseMask=targets.reduce((m,t)=>{
+      if(t.rarity!=='uber') return m;
+      const idx=uberUniverse.index.get(String(t.id));
+      return idx==null?m:(m|(1n<<BigInt(idx)));
+    },0n);
+    const legendTargetCount=plannerBitCount(targetLegendMask);
+    const remainCount=n=>targets.length-n.collected;
+    const remainLegendCount=n=>legendTargetCount-n.collectedLegendCount;
+    // A* lower bound: every still-missing target requires at least one draw.
+    // This is admissible and consistent even for 11-draw / step-up actions because one draw can acquire at most one character.
+    const fCost=n=>n.cost+remainCount(n);
     const compare=(a,b)=> saveUber
-      ? (a.missedCount-b.missedCount || a.cost-b.cost || a.switches-b.switches || a.actions-b.actions || b.collected-a.collected)
-      : (a.cost-b.cost || a.switches-b.switches || a.actions-b.actions || b.collected-a.collected || a.missedCount-b.missedCount);
+      ? (a.missedTargetCount-b.missedTargetCount || a.missedCount-b.missedCount || fCost(a)-fCost(b) || remainLegendCount(a)-remainLegendCount(b) || a.cost-b.cost || remainCount(a)-remainCount(b) || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions)
+      : (fCost(a)-fCost(b) || remainLegendCount(a)-remainLegendCount(b) || a.cost-b.cost || remainCount(a)-remainCount(b) || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions);
+    const compareBest=(a,b)=>{
+      // Fallback is only used when the safety cap is hit / range is exhausted.
+      // Legend targets are more important than other partial progress, then total collected targets.
+      const legendDiff=b.collectedLegendCount-a.collectedLegendCount;
+      if(legendDiff) return legendDiff;
+      const collectedDiff=b.collected-a.collected;
+      if(collectedDiff) return collectedDiff;
+      if(saveUber){
+        const targetPriorityDiff=a.missedTargetCount-b.missedTargetCount; if(targetPriorityDiff) return targetPriorityDiff;
+        const missDiff=a.missedCount-b.missedCount; if(missDiff) return missDiff;
+      }
+      return a.cost-b.cost || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions;
+    };
     const heap=new PlannerMinHeap(compare), exact=new Map(), dominance=new Map(), actionCache=new Map(), singleCache=new Map();
     function getSingle(entry,seed,lastId){
       const key=`${entry.key}|single|${u32(seed)}|${lastId??''}`;
@@ -1360,65 +1601,99 @@
       if(!action){ actionCache.set(key,null); return null; }
       if(saveUber){
         const miss=plannerActionMissData(action,entries,uberUniverse,getSingle,false);
-        action.missedUberMask=miss.mask; action.missedUberOpportunities=miss.opportunities;
+        // Selected Uber Rare characters are hard targets, not "misses". They are handled by the target mask.
+        action.missedUberMask=miss.mask & ~targetUberUniverseMask;
+        action.missedUberOpportunities=miss.opportunities;
+        // If another open table has a selected character at the same physical draw, remember that overlap.
+        // The state expansion below only counts it when that target has not been collected yet.
+        action.missedTargetMask=plannerActionTargetMissMask(action,entries,targetIndex,getSingle);
       }
       actionCache.set(key,action); return action;
     }
-    const start={seed:startSeed,lastId:startLast,mask:0n,missedUberMask:0n,missedCount:0,cost:0,switches:0,actions:0,lastPool:'',parent:null,action:null,collected:0};
-    const exactKey=n=>saveUber
-      ? `${n.seed}|${n.lastId??''}|${n.mask.toString()}|${n.missedUberMask.toString()}|${n.lastPool}`
-      : `${n.seed}|${n.lastId??''}|${n.mask.toString()}|${n.lastPool}`;
-    const baseKey=n=>`${n.seed}|${n.lastId??''}|${n.lastPool}`;
+    const start={seed:startSeed,lastId:startLast,mask:0n,missedTargetMask:0n,missedTargetCount:0,missedUberMask:0n,missedCount:0,cost:0,switches:0,elevenCount:0,actions:0,lastPool:'',parent:null,action:null,collected:0,collectedLegendCount:0};
+    // lastPool changes only the display/tie-break switch count; it does not change RNG feasibility.
+    // Omitting it from the physical-state key greatly reduces duplicate states across multiple open banners.
+    const exactKey=n=>{
+      const elevenPart=elevenLimit!=null?`|${n.elevenCount}`:'';
+      return saveUber
+        ? `${n.seed}|${n.lastId??''}|${n.mask.toString()}|${n.missedTargetMask.toString()}|${n.missedUberMask.toString()}${elevenPart}`
+        : `${n.seed}|${n.lastId??''}|${n.mask.toString()}${elevenPart}`;
+    };
+    const baseKey=n=>`${n.seed}|${n.lastId??''}`;
     function dominated(node){
       const key=baseKey(node),list=dominance.get(key)||[];
       for(const e of list){
         const targetsSuperset=(e.mask|node.mask)===e.mask;
+        const targetMissesSubset=!saveUber || (e.missedTargetMask|node.missedTargetMask)===node.missedTargetMask;
         const missesSubset=!saveUber || (e.missedUberMask|node.missedUberMask)===node.missedUberMask;
-        if(e.cost<=node.cost && e.switches<=node.switches && targetsSuperset && missesSubset) return true;
+        const elevenNoWorse=elevenLimit==null || e.elevenCount<=node.elevenCount;
+        if(e.cost<=node.cost && elevenNoWorse && targetsSuperset && targetMissesSubset && missesSubset) return true;
       }
       const kept=list.filter(e=>{
         const nodeTargetsSuperset=(node.mask|e.mask)===node.mask;
+        const nodeTargetMissesSubset=!saveUber || (node.missedTargetMask|e.missedTargetMask)===e.missedTargetMask;
         const nodeMissesSubset=!saveUber || (node.missedUberMask|e.missedUberMask)===e.missedUberMask;
-        return !(node.cost<=e.cost && node.switches<=e.switches && nodeTargetsSuperset && nodeMissesSubset);
+        const nodeElevenNoWorse=elevenLimit==null || node.elevenCount<=e.elevenCount;
+        return !(node.cost<=e.cost && nodeElevenNoWorse && nodeTargetsSuperset && nodeTargetMissesSubset && nodeMissesSubset);
       });
-      kept.push({mask:node.mask,missedUberMask:node.missedUberMask,cost:node.cost,switches:node.switches});
+      kept.push({mask:node.mask,missedTargetMask:node.missedTargetMask,missedUberMask:node.missedUberMask,cost:node.cost,elevenCount:node.elevenCount});
       dominance.set(key,kept);
       return false;
     }
     function push(node){
-      if(node.cost>maxDraws || dominated(node)) return;
+      if(node.cost>maxDraws) return;
+      // Safe lower-bound pruning: even in the best case there are not enough draws left to obtain all missing targets.
+      if(fCost(node)>maxDraws) return;
+      if(dominated(node)) return;
       const k=exactKey(node),old=exact.get(k);
       if(old && compare(old,node)<=0) return;
       exact.set(k,node); heap.push(node);
     }
     push(start);
-    let expanded=0,best=start,limitHit=false;
-    const MAX_STATES=saveUber?180000:140000;
+    let expanded=0,best=start,limitHit=false,lastUiYield=performance.now();
+    // A* + stronger state merging makes these limits substantially deeper than v26 without freezing the page.
+    const MAX_STATES=saveUber?520000:360000;
     while(heap.size){
       const node=heap.pop(),k=exactKey(node); if(exact.get(k)!==node) continue;
-      if(node.collected>best.collected || (node.collected===best.collected && compare(node,best)<0)) best=node;
-      if(node.mask===goal) return {found:true,node,expanded,limitHit:false,startSeed,startLast,mode,uberUniverse};
+      if(compareBest(node,best)<0) best=node;
+      // Because compare() is A*-admissible and both priority-miss / Uber-miss masks are monotone, the first popped goal is optimal:
+      // shortest mode => minimum draw count; saveUber => first avoid skipping uncollected selected targets at overlaps,
+      // then minimize missed non-target Uber count, then minimum draw count.
+      if(node.mask===goal) return {found:true,node,expanded,limitHit:false,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:true};
       if(node.cost>=maxDraws) continue;
       if(++expanded>MAX_STATES){limitHit=true;break;}
+      if((expanded&255)===0 && performance.now()-lastUiYield>32){
+        if(onProgress) onProgress(expanded,heap.size);
+        await plannerUiYield();
+        lastUiYield=performance.now();
+      }
       for(const entry of entries){
         const types=['single']; if(plannerGuaranteedRolls(entry.pool)) types.push('guaranteed');
         for(const type of types){
           const action=getAction(entry,type,node.seed,node.lastId);
           if(!action || node.cost+action.drawCost>maxDraws) continue;
+          const isEleven=action.type==='guaranteed' && action.rolls===11;
+          if(isEleven && elevenLimit!=null && node.elevenCount>=elevenLimit) continue;
           const {gain,hits}=plannerActionMask(action,targetIndex,node.mask);
           const mask=node.mask|gain;
           const switches=node.switches+(node.lastPool && node.lastPool!==entry.key?1:0);
+          // A selected character on another table at the same draw has higher priority than saving an unselected Uber.
+          // Only targets that were still missing before this action count as a priority miss.
+          const newlyMissedTargetMask=saveUber?((action.missedTargetMask||0n)&~node.mask):0n;
+          const missedTargetMask=saveUber?(node.missedTargetMask|newlyMissedTargetMask):0n;
           const missedUberMask=saveUber?(node.missedUberMask|(action.missedUberMask||0n)):0n;
-          const child={seed:action.nextSeed,lastId:action.nextLastId,mask,missedUberMask,missedCount:plannerBitCount(missedUberMask),cost:node.cost+action.drawCost,switches,actions:node.actions+1,lastPool:entry.key,parent:node,action:{...action,hits},collected:plannerBitCount(mask)};
+          const elevenCount=node.elevenCount+(isEleven?1:0);
+          const child={seed:action.nextSeed,lastId:action.nextLastId,mask,missedTargetMask,missedTargetCount:plannerBitCount(missedTargetMask),missedUberMask,missedCount:plannerBitCount(missedUberMask),cost:node.cost+action.drawCost,switches,elevenCount,actions:node.actions+1,lastPool:entry.key,parent:node,action:{...action,hits},collected:plannerBitCount(mask),collectedLegendCount:plannerBitCount(mask&targetLegendMask)};
           push(child);
         }
       }
     }
-    return {found:false,node:best,expanded,limitHit,startSeed,startLast,mode,uberUniverse};
+    return {found:false,node:best,expanded,limitHit,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:false};
   }
   function reconstructPlannerRoute(node){ const out=[]; let cur=node; while(cur?.parent){out.push(cur.action);cur=cur.parent;} return out.reverse(); }
-  function analyzePlannerRoute(route,entries){
+  function analyzePlannerRoute(route,entries,targets=[]){
     const uberUniverse=plannerUberUniverse(entries), singleCache=new Map();
+    const targetUberIds=new Set((targets||[]).filter(t=>t.rarity==='uber').map(t=>String(t.id)));
     function getSingle(entry,seed,lastId){
       const key=`${entry.key}|${u32(seed)}|${lastId??''}`;
       if(singleCache.has(key)) return singleCache.get(key);
@@ -1431,50 +1706,156 @@
       else if(action.rolls===11) elevenCount++;
       else stepUpCount++;
       const miss=plannerActionMissData(action,entries,uberUniverse,getSingle,true);
-      missedMask|=miss.mask; opportunities+=miss.opportunities; actionMisses.push(miss);
+      let filteredMask=miss.mask;
+      for(const id of targetUberIds){
+        const idx=uberUniverse.index.get(id); if(idx!=null) filteredMask&=~(1n<<BigInt(idx));
+      }
+      const details=miss.details.filter(d=>!targetUberIds.has(String(d.id)));
+      missedMask|=filteredMask; opportunities+=details.length; actionMisses.push({...miss,mask:filteredMask,details,opportunities:details.length});
     }
     const missedCats=[];
     uberUniverse.cats.forEach((cat,i)=>{ if((missedMask&(1n<<BigInt(i)))!==0n) missedCats.push(cat); });
     return {singleCount,elevenCount,stepUpCount,missedMask,missedCount:missedCats.length,missedCats,opportunities,actionMisses};
   }
+  function plannerSeedPositionMap(startSeed,maxDraws){
+    const map=new Map();
+    let seed=u32(startSeed);
+    const maxSeedSteps=Math.max(512,maxDraws*20+1000);
+    for(let offset=0;offset<=maxSeedSteps;offset++){
+      if(!map.has(seed)){
+        const pos=Math.floor(offset/2)+1, track=(offset%2===0?'A':'B');
+        map.set(seed,`${pos}${track}`);
+      }
+      seed=advanceSeed(seed);
+    }
+    return map;
+  }
+  function plannerSeedPositionLabel(seed,positionMap){
+    return positionMap.get(u32(seed)) || '範圍外';
+  }
+  function ensurePlannerRouteNote(panel){
+    let note=panel?.el?.querySelector('.plannerTableRouteNote');
+    if(note) return note;
+    note=document.createElement('div');
+    note.className='plannerTableRouteNote';
+    const tableWrap=panel?.el?.querySelector('.tableWrap');
+    if(tableWrap) panel.el.insertBefore(note,tableWrap);
+    return note;
+  }
+  function clearPlannerTableRoute(){
+    for(const panel of panelStates){
+      panel.resultBody?.querySelectorAll('.planner-route-cell,.planner-route-no').forEach(el=>{
+        el.classList.remove('planner-route-cell','planner-route-no','route-target','route-guaranteed');
+      });
+      panel.resultBody?.querySelectorAll('.plannerRouteBadge,.plannerRouteTargetTag,.plannerRouteActionTag').forEach(el=>el.remove());
+      const note=panel.el?.querySelector('.plannerTableRouteNote');
+      if(note){ note.classList.remove('active'); note.innerHTML=''; }
+    }
+    plannerRouteLegendControls?.classList.add('hidden');
+  }
+  function plannerRouteCell(panel,marker,guaranteed=false){
+    if(!panel?.resultBody || !marker || marker==='範圍外') return null;
+    const suffix=guaranteed?'G':'';
+    return panel.resultBody.querySelector(`.grid${guaranteed?'Guaranteed':'Result'}[data-pick="${marker}${suffix}"]`);
+  }
+  function plannerRouteNoCell(panel,marker){
+    if(!panel?.resultBody || !marker || marker==='範圍外') return null;
+    return panel.resultBody.querySelector(`.gridNo[data-pick="${marker}"]`);
+  }
+  function plannerAddRouteBadge(cell,text){
+    if(!cell) return;
+    const badge=document.createElement('span'); badge.className='plannerRouteBadge'; badge.textContent=String(text); cell.appendChild(badge);
+  }
+  function plannerAddRouteTarget(cell,name){
+    if(!cell || !name) return;
+    cell.classList.add('route-target');
+    const tag=document.createElement('span'); tag.className='plannerRouteTargetTag'; tag.textContent=`✓ ${name}`; cell.appendChild(tag);
+  }
+  function plannerAddRouteAction(cell,text){
+    if(!cell || !text) return;
+    const tag=document.createElement('span'); tag.className='plannerRouteActionTag'; tag.textContent=text; cell.appendChild(tag);
+  }
+  function renderPlannerRouteOnTables(route,search,maxDraws){
+    clearPlannerTableRoute();
+    if(!route.length) return {marked:0,outOfRange:0};
+    const positionMap=plannerSeedPositionMap(search.startSeed,maxDraws);
+    const panelMeta=new Map();
+    let drawNo=0,marked=0,outOfRange=0;
+    const hitByOffset=(action,offset,isGuaranteed=false)=>{
+      const hit=(action.hits||[]).find(h=>h.offset===offset && !!h.isGuaranteed===!!isGuaranteed);
+      return hit?.cat?.name||'';
+    };
+    route.forEach((action,actionIndex)=>{
+      const panel=action.entry?.panel;
+      if(!panel) return;
+      let meta=panelMeta.get(panel);
+      if(!meta){ meta={actions:[],draws:0,targets:0}; panelMeta.set(panel,meta); }
+      meta.actions.push(actionIndex+1);
+      const startMarker=plannerSeedPositionLabel(action.startSeed,positionMap);
+      const regularCount=action.type==='guaranteed'?Math.max(0,(action.rolls||action.drawCost||0)-1):1;
+      let seedCursor=u32(action.startSeed);
+      for(let i=0;i<regularCount;i++){
+        drawNo++;
+        const marker=plannerSeedPositionLabel(seedCursor,positionMap);
+        const cell=plannerRouteCell(panel,marker,false);
+        const noCell=plannerRouteNoCell(panel,marker);
+        const cat=action.acquired?.[i] || (i===0?action.result:null);
+        const targetName=hitByOffset(action,i+1,false);
+        if(cell){
+          cell.classList.add('planner-route-cell');
+          plannerAddRouteBadge(cell,drawNo);
+          if(i===0) plannerAddRouteAction(cell,action.type==='single'?`步驟 ${actionIndex+1} · 單抽`:`步驟 ${actionIndex+1} · ${action.rolls===11?'11連':'Step-up'}`);
+          if(targetName){ plannerAddRouteTarget(cell,targetName); meta.targets++; }
+          marked++;
+        }else outOfRange++;
+        if(noCell){ noCell.classList.add('planner-route-no'); if(targetName) noCell.classList.add('route-target'); }
+        meta.draws++;
+        if(cat?.slotSeed!=null) seedCursor=u32(cat.slotSeed);
+      }
+      if(action.type==='guaranteed'){
+        drawNo++;
+        const gCell=plannerRouteCell(panel,startMarker,true);
+        const gNo=plannerRouteNoCell(panel,startMarker);
+        const targetName=hitByOffset(action,action.acquired?.length||action.drawCost,true);
+        if(gCell){
+          gCell.classList.add('planner-route-cell','route-guaranteed');
+          plannerAddRouteBadge(gCell,drawNo);
+          plannerAddRouteAction(gCell,`${action.rolls===11?'11連':'Step-up'}保底`);
+          if(targetName){ plannerAddRouteTarget(gCell,targetName); meta.targets++; }
+          marked++;
+        }else outOfRange++;
+        if(gNo){ gNo.classList.add('planner-route-no'); if(targetName) gNo.classList.add('route-target'); }
+        meta.draws++;
+      }
+    });
+    // 不再於各比較表表頭顯示「蒐集抽取路徑／步驟／圖例」提示列。
+    // 路徑仍會直接標示在下方抽取表格的格子中。
+    // 只有真的產生蒐集規劃標示後，才顯示活動比較旁的顏色說明與解除按鈕。
+    if(marked>0) plannerRouteLegendControls?.classList.remove('hidden');
+    return {marked,outOfRange};
+  }
   function renderPlannerRoute(search,targets,maxDraws,entries){
-    const route=reconstructPlannerRoute(search.node),foundIds=new Set(); let cumulative=0;
+    const route=reconstructPlannerRoute(search.node),foundIds=new Set();
     for(const action of route) for(const h of action.hits||[]) foundIds.add(String(h.cat.id));
     const missing=targets.filter(t=>!foundIds.has(String(t.id)));
-    const stats=analyzePlannerRoute(route,entries);
-    const modeLabel=search.mode==='saveUber'?'少錯過超激模式':'最短抽齊模式';
+    const stats=analyzePlannerRoute(route,entries,targets);
+    const routeDisplay=renderPlannerRouteOnTables(route,search,maxDraws);
     if(search.found){
-      if(search.mode==='saveUber') setPlannerStatus(`已找到少錯過超激路徑：錯過 ${stats.missedCount} 隻 Uber Rare，總計 ${search.node.cost} 抽。`,'ok');
-      else setPlannerStatus(`已找到最短路徑：${search.node.cost} 抽，單抽 ${stats.singleCount} 次，11 連 ${stats.elevenCount} 次。`,'ok');
-    } else if(search.limitHit) setPlannerStatus(`搜尋狀態過多，已停止於 ${search.expanded.toLocaleString()} 個狀態；目前最佳路線收集 ${search.node.collected}/${targets.length} 個目標。`,'warn');
-    else setPlannerStatus(`在 ${maxDraws} 抽內找不到全部目標；目前最佳路線可收集 ${search.node.collected}/${targets.length} 個。`,'warn');
-    const targetNames=targets.map(t=>esc(t.name)).join('、');
-    const stepUpChip=stats.stepUpCount?`<span class="plannerStatChip">Step-up ${stats.stepUpCount} 次</span>`:'';
-    const missedNames=stats.missedCats.map(x=>esc(x.name));
-    const missedList=missedNames.length?`<div class="plannerMissList">錯過的超激：${missedNames.join('、')}<br>一般抽位錯過機會共 ${stats.opportunities} 次（必中保底已排除）。</div>`:`<div class="plannerMissList">一般抽位沒有錯過其他已開啟卡池的 Uber Rare（必中保底已排除）。</div>`;
-    let html=`<div class="plannerResultSummary"><strong>${search.found?(search.mode==='saveUber'?'少錯過超激路徑':'最短路徑'):'目前最佳路徑'}</strong> · ${search.node.cost} 抽 · ${route.length} 個操作 · 切換 ${search.node.switches} 次<br><div class="plannerStats"><span class="plannerStatChip">單抽 ${stats.singleCount} 次</span><span class="plannerStatChip">11連 ${stats.elevenCount} 次</span>${stepUpChip}<span class="plannerStatChip uberMiss">錯過超激 ${stats.missedCount} 隻</span></div>目標：${targetNames}<br>模式：${modeLabel}<br>起始 Seed：<span class="smallCode">${esc(String(search.startSeed))}</span> · 搜尋上限 ${maxDraws} 抽 · 展開 ${search.expanded.toLocaleString()} 個狀態${missedList}${missing.length?`<div class="plannerUnfound">尚未收集：${missing.map(x=>esc(x.name)).join('、')}</div>`:''}</div>`;
-    if(!route.length){ plannerResult.innerHTML=html; return; }
-    const steps=[];
-    route.forEach((action,actionIndex)=>{
-      const start=cumulative+1; cumulative+=action.drawCost; const range=action.drawCost===1?`第 ${cumulative} 抽`:`第 ${start}–${cumulative} 抽`;
-      let main='';
-      if(action.type==='single') main=`單抽 → <b>${esc(action.result.name)}</b>${action.duplicate?'（Rare 重複，依規則重抽／換軌）':''}`;
-      else main=`${action.rolls===11?'11 連必出':'Step-up '+action.rolls+' 抽'} → 保底 <b>${esc(action.result.name)}</b>`;
-      const hits=(action.hits||[]).map(h=>`${esc(h.cat.name)}${action.drawCost>1?`（${h.isGuaranteed?'保底':`此組第 ${h.offset} 抽`}）`:''}`).join('、');
-      const miss=stats.actionMisses[actionIndex];
-      const uniqueMiss=[]; const seen=new Set();
-      for(const d of miss.details){ if(!seen.has(d.id)){seen.add(d.id);uniqueMiss.push(d.name);} }
-      const missHtml=uniqueMiss.length?`<div class="plannerRouteMiss">↳ 此操作錯過超激：${uniqueMiss.map(esc).join('、')}（${miss.opportunities} 次機會；保底不計）</div>`:'';
-      steps.push(`<div class="plannerRouteStep"><div class="plannerRouteTop"><span class="plannerRouteRange">${range}</span><span class="plannerRoutePool">${esc(action.entry.label)}</span></div><div class="plannerRouteMain">${main}</div>${hits?`<div class="plannerRouteHit">✓ 新收集：${hits}</div>`:''}${missHtml}<div class="plannerRouteSeed">Seed ${esc(String(action.startSeed))} → ${esc(String(action.nextSeed))}</div></div>`);
-    });
-    plannerResult.innerHTML=html+`<div class="plannerRoute">${steps.join('')}</div>`;
+      if(search.mode==='saveUber') setPlannerStatus(`已把完整收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集，錯過 ${stats.missedCount} 隻未勾選 Uber Rare。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
+      else setPlannerStatus(`已把最短收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集；單抽 ${stats.singleCount} 次、11 連 ${stats.elevenCount} 次。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
+    } else if(search.limitHit) setPlannerStatus(`搜尋達安全上限 ${search.expanded.toLocaleString()} 個狀態；目前部分路徑已畫在對應表格，只收集 ${search.node.collected}/${targets.length} 個目標，這不是最佳解。`,'warn');
+    else setPlannerStatus(`在 ${maxDraws} 抽內找不到全部目標；目前最佳部分路徑已畫在對應表格，可收集 ${search.node.collected}/${targets.length} 個。`,'warn');
+
+    // Keep a compact machine-readable summary in the hidden result container so existing visibility/state logic stays intact.
+    plannerResult.innerHTML=`<div data-planner-route-ready="1">${search.found?'完整路徑':'部分路徑'} · ${search.node.cost} 抽 · ${route.length} 個操作${missing.length?` · 尚缺 ${missing.map(x=>esc(x.name)).join('、')}`:''}</div>`;
+    updatePlannerOutputVisibility();
   }
   function updatePlannerModeHint(){
     const mode=plannerOptimizationModeValue();
-    if(mode==='saveUber') plannerModeHint.textContent='先讓「錯過的不同 Uber Rare 角色數」最少，再比較總抽數、切換卡池次數；必中保底不算錯過。';
-    else plannerModeHint.textContent='優先讓總抽數最少；同抽數時優先較少切換卡池。仍會顯示這條路線錯過的 Uber Rare。';
+    if(mode==='saveUber') plannerModeHint.textContent='所有勾選角色都必須收集；若不同表在同一抽位重疊，尚未蒐集的勾選角色優先。之後才最小化未勾選 Uber Rare 的錯過數，再比較總抽數。';
+    else plannerModeHint.textContent='所有勾選角色都必須收集；使用 A* 搜尋最少總抽數。Legend Rare 會優先引導搜尋，但不改變「最短抽齊」的最佳解判定。';
   }
-  function calculatePlannerRoute(){
+  async function calculatePlannerRoute(){
     try{
       refreshPlannerCharacters(false);
       const targets=plannerCharacters.filter(c=>plannerSelectedIds.has(c.id));
@@ -1482,14 +1863,19 @@
       const entries=plannerPoolEntries(); if(!entries.length) throw new Error('目前沒有可計算的卡池。');
       const maxDraws=clampInt(futureInput.value,1,1000,'未來位數');
       const mode=plannerOptimizationModeValue();
+      const maxEleven=plannerElevenLimitValue();
       plannerSearchLimit.textContent=`最多 ${maxDraws} 抽`;
-      plannerCalcBtn.disabled=true; setPlannerStatus(mode==='saveUber'?'正在搜尋少錯過超激的路徑…':'正在搜尋最短路徑…'); plannerResult.innerHTML='';
-      const signature=`${seedInput.value}|${currentLastCatId??''}|${entries.map(e=>e.key).join(',')}|${targets.map(t=>t.id).join(',')}|${maxDraws}|${mode}`;
-      const result=plannerRouteSearch(entries,targets,maxDraws,mode);
+      plannerCalcBtn.disabled=true; setPlannerStatus(mode==='saveUber'?'正在搜尋少錯過超激的路徑…':'正在搜尋最短路徑…'); plannerResult.innerHTML=''; updatePlannerOutputVisibility();
+      setPlannerBusy(true,'計算中… 準備搜尋');
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const signature=`${seedInput.value}|${currentLastCatId??''}|${entries.map(e=>e.key).join(',')}|${targets.map(t=>t.id).join(',')}|${maxDraws}|${mode}|${maxEleven==null?'unlimited':maxEleven}`;
+      const result=await plannerRouteSearch(entries,targets,maxDraws,mode,maxEleven,(expanded)=>{
+        if(plannerBusyText) plannerBusyText.textContent=`計算中… 已搜尋 ${expanded.toLocaleString()} 個狀態`;
+      });
       plannerLastSignature=signature;
       renderPlannerRoute(result,targets,maxDraws,entries);
-    }catch(e){ setPlannerStatus(e.message||String(e),'err'); plannerResult.innerHTML=''; }
-    finally{ plannerCalcBtn.disabled=plannerSelectedIds.size===0 || !plannerCharacters.length; }
+    }catch(e){ setPlannerStatus(e.message||String(e),'err'); plannerResult.innerHTML=''; updatePlannerOutputVisibility(); }
+    finally{ setPlannerBusy(false); plannerCalcBtn.disabled=plannerSelectedIds.size===0 || !plannerCharacters.length; }
   }
 
   function normalizeCat(v,rarity,index) {
@@ -2047,6 +2433,7 @@
     try{localStorage.setItem('battle-cats-planner-visible-v1',show?'1':'0');}catch(_){ }
     if(show) refreshPlannerCharacters(false);
     updateLeftRailVisibility();
+    updatePlannerOutputVisibility();
   }
   settingsToggle.addEventListener('click',()=>setSettingsVisible(settingsPanel.classList.contains('hidden')));
   plannerToggle.addEventListener('click',()=>setPlannerVisible(plannerPanel.classList.contains('hidden')));
@@ -2079,6 +2466,11 @@
   plannerSearch.addEventListener('input',renderPlannerCharacterList);
   plannerRarityFilter.addEventListener('change',renderPlannerCharacterList);
   plannerOptimizationMode.addEventListener('change',()=>{updatePlannerModeHint();invalidatePlannerResult('最佳化模式已變更，請重新計算。');});
+  plannerLimitElevenEnabled.addEventListener('change',()=>{syncPlannerElevenLimitUi();savePlannerPrefs();invalidatePlannerResult('11 連次數限制已變更，請重新計算。');});
+  plannerMaxEleven.addEventListener('change',()=>{
+    try{ clampInt(plannerMaxEleven.value,0,90,'11 連次數上限'); savePlannerPrefs(); invalidatePlannerResult('11 連次數上限已變更，請重新計算。'); }
+    catch(e){ setPlannerStatus(e.message||String(e),'err'); }
+  });
   plannerCharacterList.addEventListener('change',e=>{
     const cb=e.target.closest('.plannerTargetCheck'); if(!cb) return;
     const id=String(cb.dataset.targetId||'');
@@ -2087,9 +2479,14 @@
   });
   plannerClearBtn.addEventListener('click',()=>{plannerSelectedIds.clear();renderPlannerCharacterList();invalidatePlannerResult();});
   plannerCalcBtn.addEventListener('click',calculatePlannerRoute);
+  clearPlannerMarksBtn.addEventListener('click',()=>{
+    clearPlannerTableRoute();
+    setPlannerStatus('已解除表格上的蒐集規劃標示；勾選角色與規劃設定仍保留。','');
+  });
 
   updatePlannerModeHint();
   loadRangePrefs();
+  loadPlannerPrefs();
   const startupSession=loadSessionPrefs();
   seedInput.value=startupSession.seed || '373531645';
   currentLastCatId=startupSession.lastCatId;
