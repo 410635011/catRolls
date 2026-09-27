@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Battle Cats Seed Tracker v32</title>
+<title>Battle Cats Seed Tracker v33 · NP Max</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -573,7 +573,7 @@
 
     <aside class="card panel plannerPanel hidden" id="plannerPanel">
       <div class="panelCompactTitle"><span>角色收集規劃</span><span class="plannerCount" id="plannerSelectedCount">已選 0</span></div>
-      <div class="section">
+      <div class="section hidden">
         <div id="plannerSourceMeta" class="plannerSourceMeta">目前沒有可用卡池。</div>
       </div>
       <div class="section">
@@ -597,8 +597,9 @@
           <select id="plannerOptimizationMode">
             <option value="shortest">最短抽齊（總抽數優先）</option>
             <option value="saveUber">少錯過超激（傳說稀有優先）</option>
+            <option value="npMax">NP 最大化（最短 +20 抽內）</option>
           </select>
-          <div class="plannerModeHint" id="plannerModeHint">優先讓總抽數最少；同抽數時優先較少切換卡池。</div>
+          <div class="plannerModeHint hidden" id="plannerModeHint">優先讓總抽數最少；同抽數時優先較少切換卡池。</div>
         </div>
         <div class="plannerModeBox">
           <label>11 連抽限制</label>
@@ -609,9 +610,9 @@
         <div class="plannerLimitLine"><span>最長搜尋距離</span><b id="plannerSearchLimit">沿用「未來位數」</b></div>
         <button type="button" class="plannerCalcBtn" id="plannerCalcBtn">計算收集路徑</button>
         <div class="plannerBusy" id="plannerBusy" role="status" aria-live="polite"><span class="plannerBusySpinner" aria-hidden="true"></span><span id="plannerBusyText">計算中…</span></div>
-        <div class="plannerTiny">所有勾選角色都是「硬性收集目標」。在「少錯過超激」模式中，若同一抽位於不同表出現重疊，會先保護尚未蒐集的勾選角色；只有在不犧牲勾選角色優先權的前提下，才比較未勾選 Uber Rare 的錯過數，再比較總抽數。11 連／Step-up 最後的必中保底不列入一般抽位錯過統計。</div>
+        <div class="plannerTiny hidden">所有勾選角色都是「硬性收集目標」。在「少錯過超激」模式中，若同一抽位於不同表出現重疊，會先保護尚未蒐集的勾選角色，再比較未勾選 Uber Rare 的錯過數。「NP 最大化」會先快速找出最短抽齊所需抽數，再只搜尋「最短抽數 +20 抽」以內的路徑，避免因未來位數設定很大而搜尋過久；指定角色第一次取得視為收藏、不計 NP，之後重複取得與其他沿途角色依 Legend Rare 150／Uber Rare 50／Super Rare 15／Rare 5 計算。11 連／Step-up 最後的必中保底會正常計入 NP。</div>
         <div id="plannerStatus" class="plannerStatus">先選擇想收集的角色。</div>
-        <div class="plannerTiny">計算結果會顯示在頁面下方的大型結果區塊。</div>
+        <div class="plannerTiny hidden">計算結果會顯示在頁面下方的大型結果區塊。</div>
       </div>
     </aside>
     </div>
@@ -689,6 +690,8 @@
   let currentLastCatId = null;
   let panelSeq = 0;
   const MAX_PANELS = 3;
+  const NP_EXTRA_DRAW_LIMIT = 20;
+  const NP_FAST_MAX_STATES = 120000;
   const panelStates = [];
   let plannerCharacters = [];
   const plannerSelectedIds = new Set();
@@ -1513,7 +1516,61 @@
     const index=new Map(cats.map((c,i)=>[c.id,i]));
     return {cats,index};
   }
-  function plannerOptimizationModeValue(){ return plannerOptimizationMode?.value==='saveUber'?'saveUber':'shortest'; }
+  function plannerOptimizationModeValue(){
+    const value=plannerOptimizationMode?.value;
+    return value==='saveUber'?'saveUber':(value==='npMax'?'npMax':'shortest');
+  }
+  function plannerNpValue(rarity){ return ({legend:150,uber:50,super:15,rare:5})[rarity]||0; }
+  function plannerActionNpGain(action,targetIndex,beforeMask){
+    if(!action) return 0;
+    let mask=beforeMask, total=0;
+    for(const cat of action.acquired||[]){
+      const idx=targetIndex.get(String(cat?.id??''));
+      if(idx!=null){
+        const bit=1n<<BigInt(idx);
+        if((mask&bit)===0n){ mask|=bit; continue; }
+      }
+      total+=plannerNpValue(cat?.rarity);
+    }
+    return total;
+  }
+  function plannerRouteNpStats(route,targets=[]){
+    const targetIndex=new Map((targets||[]).map((t,i)=>[String(t.id),i]));
+    let mask=0n,total=0;
+    const byRarity={legend:0,uber:0,super:0,rare:0};
+    for(const action of route||[]){
+      for(const cat of action.acquired||[]){
+        const idx=targetIndex.get(String(cat?.id??''));
+        if(idx!=null){
+          const bit=1n<<BigInt(idx);
+          if((mask&bit)===0n){ mask|=bit; continue; }
+        }
+        const value=plannerNpValue(cat?.rarity);
+        if(value>0){
+          total+=value;
+          if(Object.prototype.hasOwnProperty.call(byRarity,cat.rarity)) byRarity[cat.rarity]++;
+        }
+      }
+    }
+    return {total,byRarity};
+  }
+  function plannerDecorateNodeNp(node,targets=[]){
+    if(!node) return node;
+    const targetIndex=new Map((targets||[]).map((t,i)=>[String(t.id),i]));
+    const chain=[]; let cur=node;
+    while(cur?.parent){ chain.push(cur); cur=cur.parent; }
+    chain.reverse();
+    if(cur) cur.npScore=0;
+    let total=0;
+    for(const child of chain){
+      const beforeMask=child.parent?.mask??0n;
+      const gain=plannerActionNpGain(child.action,targetIndex,beforeMask);
+      total+=gain;
+      child.npScore=total;
+      if(child.action) child.action={...child.action,npGain:gain};
+    }
+    return node;
+  }
   function plannerActionMissData(action,entries,uberUniverse,getSingle,withDetails=false){
     if(!action) return {mask:0n,opportunities:0,details:[]};
     let seed=u32(action.startSeed), lastId=action.startLastId==null?null:String(action.startLastId), mask=0n, opportunities=0;
@@ -1555,12 +1612,12 @@
     }
     return mask;
   }
-  async function plannerRouteSearch(entries,targets,maxDraws,mode='shortest',maxEleven=null,onProgress=null){
+  async function plannerRouteSearch(entries,targets,maxDraws,mode='shortest',maxEleven=null,onProgress=null,npOptions=null){
     const targetIndex=new Map(targets.map((t,i)=>[String(t.id),i]));
     const targetLegendMask=targets.reduce((m,t,i)=>t.rarity==='legend'?(m|(1n<<BigInt(i))):m,0n);
     const goal=(1n<<BigInt(targets.length))-1n;
     const startSeed=readSeed(), startLast=currentLastCatId==null?null:String(currentLastCatId);
-    const uberUniverse=plannerUberUniverse(entries), saveUber=mode==='saveUber', elevenLimit=Number.isInteger(maxEleven)&&maxEleven>=0?maxEleven:null;
+    const uberUniverse=plannerUberUniverse(entries), saveUber=mode==='saveUber', npMax=mode==='npMax', elevenLimit=Number.isInteger(maxEleven)&&maxEleven>=0?maxEleven:null;
     const targetUberUniverseMask=targets.reduce((m,t)=>{
       if(t.rarity!=='uber') return m;
       const idx=uberUniverse.index.get(String(t.id));
@@ -1574,7 +1631,9 @@
     const fCost=n=>n.cost+remainCount(n);
     const compare=(a,b)=> saveUber
       ? (a.missedTargetCount-b.missedTargetCount || a.missedCount-b.missedCount || fCost(a)-fCost(b) || remainLegendCount(a)-remainLegendCount(b) || a.cost-b.cost || remainCount(a)-remainCount(b) || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions)
-      : (fCost(a)-fCost(b) || remainLegendCount(a)-remainLegendCount(b) || a.cost-b.cost || remainCount(a)-remainCount(b) || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions);
+      : npMax
+        ? (remainLegendCount(a)-remainLegendCount(b) || remainCount(a)-remainCount(b) || (b.npScore||0)-(a.npScore||0) || fCost(a)-fCost(b) || b.cost-a.cost || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions)
+        : (fCost(a)-fCost(b) || remainLegendCount(a)-remainLegendCount(b) || a.cost-b.cost || remainCount(a)-remainCount(b) || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions);
     const compareBest=(a,b)=>{
       // Fallback is only used when the safety cap is hit / range is exhausted.
       // Legend targets are more important than other partial progress, then total collected targets.
@@ -1586,7 +1645,9 @@
         const targetPriorityDiff=a.missedTargetCount-b.missedTargetCount; if(targetPriorityDiff) return targetPriorityDiff;
         const missDiff=a.missedCount-b.missedCount; if(missDiff) return missDiff;
       }
-      return a.cost-b.cost || a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions;
+      const costDiff=a.cost-b.cost; if(costDiff) return costDiff;
+      if(npMax){ const npDiff=(b.npScore||0)-(a.npScore||0); if(npDiff) return npDiff; }
+      return a.switches-b.switches || (elevenLimit!=null?a.elevenCount-b.elevenCount:0) || a.actions-b.actions;
     };
     const heap=new PlannerMinHeap(compare), exact=new Map(), dominance=new Map(), actionCache=new Map(), singleCache=new Map();
     function getSingle(entry,seed,lastId){
@@ -1610,18 +1671,39 @@
       }
       actionCache.set(key,action); return action;
     }
-    const start={seed:startSeed,lastId:startLast,mask:0n,missedTargetMask:0n,missedTargetCount:0,missedUberMask:0n,missedCount:0,cost:0,switches:0,elevenCount:0,actions:0,lastPool:'',parent:null,action:null,collected:0,collectedLegendCount:0};
+    const start={seed:startSeed,lastId:startLast,mask:0n,missedTargetMask:0n,missedTargetCount:0,missedUberMask:0n,missedCount:0,npScore:0,cost:0,switches:0,elevenCount:0,actions:0,lastPool:'',parent:null,action:null,collected:0,collectedLegendCount:0};
     // lastPool changes only the display/tie-break switch count; it does not change RNG feasibility.
     // Omitting it from the physical-state key greatly reduces duplicate states across multiple open banners.
     const exactKey=n=>{
       const elevenPart=elevenLimit!=null?`|${n.elevenCount}`:'';
       return saveUber
         ? `${n.seed}|${n.lastId??''}|${n.mask.toString()}|${n.missedTargetMask.toString()}|${n.missedUberMask.toString()}${elevenPart}`
-        : `${n.seed}|${n.lastId??''}|${n.mask.toString()}${elevenPart}`;
+        : npMax
+          ? `${n.seed}|${n.lastId??''}|${n.mask.toString()}|${n.cost}${elevenPart}`
+          : `${n.seed}|${n.lastId??''}|${n.mask.toString()}${elevenPart}`;
     };
     const baseKey=n=>`${n.seed}|${n.lastId??''}`;
     function dominated(node){
       const key=baseKey(node),list=dominance.get(key)||[];
+      if(npMax){
+        // NP mode must not merge different collection masks: whether a selected cat was already kept
+        // changes whether a future copy is worth NP. Only compare truly equivalent target states.
+        for(const e of list){
+          if(e.mask!==node.mask) continue;
+          const elevenNoWorse=elevenLimit==null || e.elevenCount<=node.elevenCount;
+          const objectiveNoWorse=e.cost<=node.cost && (e.npScore||0)>=(node.npScore||0);
+          if(elevenNoWorse && objectiveNoWorse) return true;
+        }
+        const kept=list.filter(e=>{
+          if(e.mask!==node.mask) return true;
+          const nodeElevenNoWorse=elevenLimit==null || node.elevenCount<=e.elevenCount;
+          const nodeObjectiveNoWorse=node.cost<=e.cost && (node.npScore||0)>=(e.npScore||0);
+          return !(nodeElevenNoWorse && nodeObjectiveNoWorse);
+        });
+        kept.push({mask:node.mask,missedTargetMask:0n,missedUberMask:0n,npScore:node.npScore||0,cost:node.cost,elevenCount:node.elevenCount});
+        dominance.set(key,kept);
+        return false;
+      }
       for(const e of list){
         const targetsSuperset=(e.mask|node.mask)===e.mask;
         const targetMissesSubset=!saveUber || (e.missedTargetMask|node.missedTargetMask)===node.missedTargetMask;
@@ -1636,7 +1718,7 @@
         const nodeElevenNoWorse=elevenLimit==null || node.elevenCount<=e.elevenCount;
         return !(node.cost<=e.cost && nodeElevenNoWorse && nodeTargetsSuperset && nodeTargetMissesSubset && nodeMissesSubset);
       });
-      kept.push({mask:node.mask,missedTargetMask:node.missedTargetMask,missedUberMask:node.missedUberMask,cost:node.cost,elevenCount:node.elevenCount});
+      kept.push({mask:node.mask,missedTargetMask:node.missedTargetMask,missedUberMask:node.missedUberMask,npScore:node.npScore||0,cost:node.cost,elevenCount:node.elevenCount});
       dominance.set(key,kept);
       return false;
     }
@@ -1650,16 +1732,23 @@
       exact.set(k,node); heap.push(node);
     }
     push(start);
-    let expanded=0,best=start,limitHit=false,lastUiYield=performance.now();
-    // A* + stronger state merging makes these limits substantially deeper than v26 without freezing the page.
-    const MAX_STATES=saveUber?520000:360000;
+    const npBaseline=npMax?npOptions?.baselineNode:null;
+    let expanded=0,best=start,limitHit=false,lastUiYield=performance.now(),bestGoal=npBaseline||null;
+    // NP 模式採兩階段快速搜尋：先由外層精確取得最短路徑，再只搜尋「最短 + 額外抽數」範圍。
+    // 為避免多卡池 / 500 抽設定造成瀏覽器長時間卡住，NP 第二階段使用較小安全狀態上限。
+    const MAX_STATES=npMax?NP_FAST_MAX_STATES:(saveUber?520000:360000);
     while(heap.size){
       const node=heap.pop(),k=exactKey(node); if(exact.get(k)!==node) continue;
       if(compareBest(node,best)<0) best=node;
-      // Because compare() is A*-admissible and both priority-miss / Uber-miss masks are monotone, the first popped goal is optimal:
-      // shortest mode => minimum draw count; saveUber => first avoid skipping uncollected selected targets at overlaps,
-      // then minimize missed non-target Uber count, then minimum draw count.
-      if(node.mask===goal) return {found:true,node,expanded,limitHit:false,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:true};
+      if(node.mask===goal){
+        if(npMax){
+          const better=!bestGoal || (node.npScore||0)>(bestGoal.npScore||0) || ((node.npScore||0)===(bestGoal.npScore||0) && (node.cost<bestGoal.cost || (node.cost===bestGoal.cost && node.switches<bestGoal.switches)));
+          if(better) bestGoal=node;
+          // 收集完成後就停止該分支；不允許為了灌 NP 在完成所有目標後繼續多抽。
+          continue;
+        }
+        return {found:true,node,expanded,limitHit:false,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:true};
+      }
       if(node.cost>=maxDraws) continue;
       if(++expanded>MAX_STATES){limitHit=true;break;}
       if((expanded&255)===0 && performance.now()-lastUiYield>32){
@@ -1683,12 +1772,14 @@
           const missedTargetMask=saveUber?(node.missedTargetMask|newlyMissedTargetMask):0n;
           const missedUberMask=saveUber?(node.missedUberMask|(action.missedUberMask||0n)):0n;
           const elevenCount=node.elevenCount+(isEleven?1:0);
-          const child={seed:action.nextSeed,lastId:action.nextLastId,mask,missedTargetMask,missedTargetCount:plannerBitCount(missedTargetMask),missedUberMask,missedCount:plannerBitCount(missedUberMask),cost:node.cost+action.drawCost,switches,elevenCount,actions:node.actions+1,lastPool:entry.key,parent:node,action:{...action,hits},collected:plannerBitCount(mask),collectedLegendCount:plannerBitCount(mask&targetLegendMask)};
+          const npGain=npMax?plannerActionNpGain(action,targetIndex,node.mask):0;
+          const child={seed:action.nextSeed,lastId:action.nextLastId,mask,missedTargetMask,missedTargetCount:plannerBitCount(missedTargetMask),missedUberMask,missedCount:plannerBitCount(missedUberMask),npScore:(node.npScore||0)+npGain,cost:node.cost+action.drawCost,switches,elevenCount,actions:node.actions+1,lastPool:entry.key,parent:node,action:{...action,hits,npGain},collected:plannerBitCount(mask),collectedLegendCount:plannerBitCount(mask&targetLegendMask)};
           push(child);
         }
       }
     }
-    return {found:false,node:best,expanded,limitHit,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:false};
+    if(npMax && bestGoal) return {found:true,node:bestGoal,expanded,limitHit,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:!limitHit,shortestCost:npOptions?.shortestCost??null,npMaxCost:maxDraws,npExtraLimit:npOptions?.extraLimit??null};
+    return {found:false,node:best,expanded,limitHit,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:false,shortestCost:npOptions?.shortestCost??null,npMaxCost:npMax?maxDraws:null,npExtraLimit:npOptions?.extraLimit??null};
   }
   function reconstructPlannerRoute(node){ const out=[]; let cur=node; while(cur?.parent){out.push(cur.action);cur=cur.parent;} return out.reverse(); }
   function analyzePlannerRoute(route,entries,targets=[]){
@@ -1804,7 +1895,10 @@
         if(cell){
           cell.classList.add('planner-route-cell');
           plannerAddRouteBadge(cell,drawNo);
-          if(i===0) plannerAddRouteAction(cell,action.type==='single'?`步驟 ${actionIndex+1} · 單抽`:`步驟 ${actionIndex+1} · ${action.rolls===11?'11連':'Step-up'}`);
+          if(i===0){
+            const npTag=search.mode==='npMax'?` · NP +${action.npGain||0}`:'';
+            plannerAddRouteAction(cell,action.type==='single'?`步驟 ${actionIndex+1} · 單抽${npTag}`:`步驟 ${actionIndex+1} · ${action.rolls===11?'11連':'Step-up'}${npTag}`);
+          }
           if(targetName){ plannerAddRouteTarget(cell,targetName); meta.targets++; }
           marked++;
         }else outOfRange++;
@@ -1839,20 +1933,27 @@
     for(const action of route) for(const h of action.hits||[]) foundIds.add(String(h.cat.id));
     const missing=targets.filter(t=>!foundIds.has(String(t.id)));
     const stats=analyzePlannerRoute(route,entries,targets);
+    const npStats=plannerRouteNpStats(route,targets);
     const routeDisplay=renderPlannerRouteOnTables(route,search,maxDraws);
     if(search.found){
       if(search.mode==='saveUber') setPlannerStatus(`已把完整收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集，錯過 ${stats.missedCount} 隻未勾選 Uber Rare。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
-      else setPlannerStatus(`已把最短收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集；單抽 ${stats.singleCount} 次、11 連 ${stats.elevenCount} 次。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
+      else if(search.mode==='npMax'){
+        const shortest=Number.isFinite(search.shortestCost)?search.shortestCost:search.node.cost;
+        const cap=Number.isFinite(search.npMaxCost)?search.npMaxCost:search.node.cost;
+        const proof=search.optimal?'已完成限定範圍搜尋，這是範圍內最高 NP 解':`快速搜尋已達 ${NP_FAST_MAX_STATES.toLocaleString()} 個狀態，顯示目前找到的最佳 NP 路徑`;
+        setPlannerStatus(`${proof}：最短 ${shortest} 抽，NP 搜尋上限 ${cap} 抽；目前路徑共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集，可累積 NP ${npStats.total}（傳說 ${npStats.byRarity.legend}、超激 ${npStats.byRarity.uber}、激稀有 ${npStats.byRarity.super}、稀有 ${npStats.byRarity.rare} 隻可轉換）。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,search.optimal?'ok':'warn');
+      } else setPlannerStatus(`已把最短收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集；單抽 ${stats.singleCount} 次、11 連 ${stats.elevenCount} 次。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
     } else if(search.limitHit) setPlannerStatus(`搜尋達安全上限 ${search.expanded.toLocaleString()} 個狀態；目前部分路徑已畫在對應表格，只收集 ${search.node.collected}/${targets.length} 個目標，這不是最佳解。`,'warn');
     else setPlannerStatus(`在 ${maxDraws} 抽內找不到全部目標；目前最佳部分路徑已畫在對應表格，可收集 ${search.node.collected}/${targets.length} 個。`,'warn');
 
     // Keep a compact machine-readable summary in the hidden result container so existing visibility/state logic stays intact.
-    plannerResult.innerHTML=`<div data-planner-route-ready="1">${search.found?'完整路徑':'部分路徑'} · ${search.node.cost} 抽 · ${route.length} 個操作${missing.length?` · 尚缺 ${missing.map(x=>esc(x.name)).join('、')}`:''}</div>`;
+    plannerResult.innerHTML=`<div data-planner-route-ready="1">${search.found?'完整路徑':'部分路徑'} · ${search.node.cost} 抽 · ${route.length} 個操作${search.mode==='npMax'?` · NP ${npStats.total}`:''}${missing.length?` · 尚缺 ${missing.map(x=>esc(x.name)).join('、')}`:''}</div>`;
     updatePlannerOutputVisibility();
   }
   function updatePlannerModeHint(){
     const mode=plannerOptimizationModeValue();
     if(mode==='saveUber') plannerModeHint.textContent='所有勾選角色都必須收集；若不同表在同一抽位重疊，尚未蒐集的勾選角色優先。之後才最小化未勾選 Uber Rare 的錯過數，再比較總抽數。';
+    else if(mode==='npMax') plannerModeHint.textContent=`先快速算出最短抽齊路徑，再把 NP 搜尋距離限制在最短 +${NP_EXTRA_DRAW_LIMIT} 抽以內；完成所有指定角色後不再繼續抽。這能大幅縮小 500 抽等大範圍設定的搜尋量。`;
     else plannerModeHint.textContent='所有勾選角色都必須收集；使用 A* 搜尋最少總抽數。Legend Rare 會優先引導搜尋，但不改變「最短抽齊」的最佳解判定。';
   }
   async function calculatePlannerRoute(){
@@ -1864,14 +1965,35 @@
       const maxDraws=clampInt(futureInput.value,1,1000,'未來位數');
       const mode=plannerOptimizationModeValue();
       const maxEleven=plannerElevenLimitValue();
-      plannerSearchLimit.textContent=`最多 ${maxDraws} 抽`;
-      plannerCalcBtn.disabled=true; setPlannerStatus(mode==='saveUber'?'正在搜尋少錯過超激的路徑…':'正在搜尋最短路徑…'); plannerResult.innerHTML=''; updatePlannerOutputVisibility();
+      plannerSearchLimit.textContent=mode==='npMax'?`先找最短，再搜尋 +${NP_EXTRA_DRAW_LIMIT} 抽`:`最多 ${maxDraws} 抽`;
+      const searchingText=mode==='saveUber'?'正在搜尋少錯過超激的路徑…':(mode==='npMax'?`正在進行 NP 快速搜尋（最短 +${NP_EXTRA_DRAW_LIMIT} 抽）…`:'正在搜尋最短路徑…');
+      plannerCalcBtn.disabled=true; setPlannerStatus(searchingText); plannerResult.innerHTML=''; updatePlannerOutputVisibility();
       setPlannerBusy(true,'計算中… 準備搜尋');
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-      const signature=`${seedInput.value}|${currentLastCatId??''}|${entries.map(e=>e.key).join(',')}|${targets.map(t=>t.id).join(',')}|${maxDraws}|${mode}|${maxEleven==null?'unlimited':maxEleven}`;
-      const result=await plannerRouteSearch(entries,targets,maxDraws,mode,maxEleven,(expanded)=>{
-        if(plannerBusyText) plannerBusyText.textContent=`計算中… 已搜尋 ${expanded.toLocaleString()} 個狀態`;
-      });
+      const signature=`${seedInput.value}|${currentLastCatId??''}|${entries.map(e=>e.key).join(',')}|${targets.map(t=>t.id).join(',')}|${maxDraws}|${mode}|${maxEleven==null?'unlimited':maxEleven}|npExtra:${NP_EXTRA_DRAW_LIMIT}`;
+      let result;
+      if(mode==='npMax'){
+        setPlannerBusy(true,'第 1/2 階段：先找最短收集路徑…');
+        const shortestResult=await plannerRouteSearch(entries,targets,maxDraws,'shortest',maxEleven,(expanded)=>{
+          if(plannerBusyText) plannerBusyText.textContent=`第 1/2 階段：找最短路… 已搜尋 ${expanded.toLocaleString()} 個狀態`;
+        });
+        if(!shortestResult.found){
+          result=shortestResult;
+        }else{
+          const shortestCost=shortestResult.node.cost;
+          const npMaxDraws=Math.min(maxDraws,shortestCost+NP_EXTRA_DRAW_LIMIT);
+          plannerDecorateNodeNp(shortestResult.node,targets);
+          plannerSearchLimit.textContent=`最短 ${shortestCost} 抽；NP 最多 ${npMaxDraws} 抽（+${npMaxDraws-shortestCost}）`;
+          setPlannerBusy(true,`第 2/2 階段：NP 最佳化… 上限 ${npMaxDraws} 抽`);
+          result=await plannerRouteSearch(entries,targets,npMaxDraws,'npMax',maxEleven,(expanded)=>{
+            if(plannerBusyText) plannerBusyText.textContent=`第 2/2 階段：NP 最佳化… 已搜尋 ${expanded.toLocaleString()} / ${NP_FAST_MAX_STATES.toLocaleString()} 個狀態`;
+          },{baselineNode:shortestResult.node,shortestCost,extraLimit:npMaxDraws-shortestCost});
+        }
+      }else{
+        result=await plannerRouteSearch(entries,targets,maxDraws,mode,maxEleven,(expanded)=>{
+          if(plannerBusyText) plannerBusyText.textContent=`計算中… 已搜尋 ${expanded.toLocaleString()} 個狀態`;
+        });
+      }
       plannerLastSignature=signature;
       renderPlannerRoute(result,targets,maxDraws,entries);
     }catch(e){ setPlannerStatus(e.message||String(e),'err'); plannerResult.innerHTML=''; updatePlannerOutputVisibility(); }
