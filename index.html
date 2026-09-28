@@ -504,6 +504,13 @@
   .plannerCatRow.pool-only-2.selected{background:var(--table2-bg-hover);box-shadow:inset 3px 0 0 var(--table2)}
   .plannerCatRow.pool-only-3.selected{background:var(--table3-bg-hover);box-shadow:inset 3px 0 0 var(--table3)}
 
+  /* v36: collection route shadow on non-selected tables + explicit rare-reroll display */
+  .planner-route-shadow{position:relative!important;isolation:isolate;outline:2px dashed rgba(77,108,128,.58)!important;outline-offset:-3px!important}
+  .planner-route-shadow::after{content:"";position:absolute;inset:3px;z-index:1;pointer-events:none;background:rgba(109,142,162,.045);border-radius:2px}
+  .planner-route-shadow>*{position:relative;z-index:2}
+  .plannerRouteShadowTag{position:absolute!important;z-index:6!important;right:3px;bottom:2px;max-width:calc(100% - 6px);padding:1px 4px;border-radius:4px;background:rgba(255,255,255,.88);color:#718592;border:1px dashed rgba(77,108,128,.42);font-size:8.3px;font-weight:750;line-height:1.15;pointer-events:none;white-space:nowrap}
+  .plannerRouteRerollTag{position:absolute!important;z-index:7!important;left:3px;right:3px;bottom:2px;padding:1px 4px;border-radius:4px;background:rgba(255,247,231,.96);color:#8a6422;border:1px solid rgba(170,126,45,.34);font-size:8.5px;font-weight:800;line-height:1.2;text-align:center;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 </style>
 </head>
 <body>
@@ -1781,6 +1788,22 @@
     if(npMax && bestGoal) return {found:true,node:bestGoal,expanded,limitHit,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:!limitHit,shortestCost:npOptions?.shortestCost??null,npMaxCost:maxDraws,npExtraLimit:npOptions?.extraLimit??null};
     return {found:false,node:best,expanded,limitHit,startSeed,startLast,mode,uberUniverse,maxEleven:elevenLimit,optimal:false,shortestCost:npOptions?.shortestCost??null,npMaxCost:npMax?maxDraws:null,npExtraLimit:npOptions?.extraLimit??null};
   }
+  function validatePlannerRoute(route,startSeed,startLastId){
+    let seed=u32(startSeed), lastId=startLastId==null?null:String(startLastId);
+    for(let i=0;i<(route||[]).length;i++){
+      const action=route[i];
+      if(u32(action.startSeed)!==seed || String(action.startLastId??'')!==String(lastId??''))
+        return {ok:false,index:i,reason:'路徑狀態與實際上一抽不一致'};
+      const replay=action.type==='guaranteed'?simulatePlannerGuaranteed(seed,lastId,action.entry):simulatePlannerSingle(seed,lastId,action.entry);
+      if(!replay) return {ok:false,index:i,reason:'此步驟無法依目前狀態實際抽出'};
+      const aIds=(action.acquired||[]).map(c=>String(c?.id??''));
+      const rIds=(replay.acquired||[]).map(c=>String(c?.id??''));
+      if(aIds.length!==rIds.length || aIds.some((id,j)=>id!==rIds[j]))
+        return {ok:false,index:i,reason:'Rare 重複／換軌後的實得角色已改變'};
+      seed=u32(replay.nextSeed); lastId=replay.nextLastId==null?null:String(replay.nextLastId);
+    }
+    return {ok:true};
+  }
   function reconstructPlannerRoute(node){ const out=[]; let cur=node; while(cur?.parent){out.push(cur.action);cur=cur.parent;} return out.reverse(); }
   function analyzePlannerRoute(route,entries,targets=[]){
     const uberUniverse=plannerUberUniverse(entries), singleCache=new Map();
@@ -1835,10 +1858,10 @@
   }
   function clearPlannerTableRoute(){
     for(const panel of panelStates){
-      panel.resultBody?.querySelectorAll('.planner-route-cell,.planner-route-no').forEach(el=>{
-        el.classList.remove('planner-route-cell','planner-route-no','route-target','route-guaranteed');
+      panel.resultBody?.querySelectorAll('.planner-route-cell,.planner-route-no,.planner-route-shadow').forEach(el=>{
+        el.classList.remove('planner-route-cell','planner-route-no','planner-route-shadow','route-target','route-guaranteed');
       });
-      panel.resultBody?.querySelectorAll('.plannerRouteBadge,.plannerRouteTargetTag,.plannerRouteActionTag').forEach(el=>el.remove());
+      panel.resultBody?.querySelectorAll('.plannerRouteBadge,.plannerRouteTargetTag,.plannerRouteActionTag,.plannerRouteShadowTag,.plannerRouteRerollTag').forEach(el=>el.remove());
       const note=panel.el?.querySelector('.plannerTableRouteNote');
       if(note){ note.classList.remove('active'); note.innerHTML=''; }
     }
@@ -1866,6 +1889,27 @@
     if(!cell || !text) return;
     const tag=document.createElement('span'); tag.className='plannerRouteActionTag'; tag.textContent=text; cell.appendChild(tag);
   }
+  function plannerAddRouteShadow(cell,text='此抽改在另一張表'){
+    if(!cell) return;
+    cell.classList.add('planner-route-shadow');
+    if(cell.querySelector('.plannerRouteShadowTag')) return;
+    const tag=document.createElement('span'); tag.className='plannerRouteShadowTag'; tag.textContent=text; cell.appendChild(tag);
+  }
+  function plannerAddRerollNotice(cell,actual,nextMarker=''){
+    if(!cell || !actual) return;
+    const tag=document.createElement('span');
+    tag.className='plannerRouteRerollTag';
+    tag.textContent=`Rare 重複 → 實得 ${actual.name}${nextMarker?`，下一抽 ${nextMarker}`:''}`;
+    cell.appendChild(tag);
+  }
+  function plannerShadowOtherPanels(chosenPanel,marker){
+    if(panelStates.length<2 || !marker || marker==='範圍外') return;
+    for(const other of panelStates){
+      if(other===chosenPanel) continue;
+      const cell=plannerRouteCell(other,marker,false);
+      if(cell) plannerAddRouteShadow(cell,`此抽改抽表${chosenPanel.index}`);
+    }
+  }
   function renderPlannerRouteOnTables(route,search,maxDraws){
     clearPlannerTableRoute();
     if(!route.length) return {marked:0,outOfRange:0};
@@ -1892,12 +1936,20 @@
         const noCell=plannerRouteNoCell(panel,marker);
         const cat=action.acquired?.[i] || (i===0?action.result:null);
         const targetName=hitByOffset(action,i+1,false);
+        plannerShadowOtherPanels(panel,marker);
         if(cell){
           cell.classList.add('planner-route-cell');
           plannerAddRouteBadge(cell,drawNo);
           if(i===0){
             const npTag=search.mode==='npMax'?` · NP +${action.npGain||0}`:'';
             plannerAddRouteAction(cell,action.type==='single'?`步驟 ${actionIndex+1} · 單抽${npTag}`:`步驟 ${actionIndex+1} · ${action.rolls===11?'11連':'Step-up'}${npTag}`);
+          }
+          // 單抽遇到 Rare 重複時，表格主格顯示的是「原始候選」，不是實際取得角色。
+          // 路徑判定一律以 action.acquired 的實得角色為準，並清楚標出換軌後的下一抽位置，避免把原始格誤認成已蒐集。
+          const isRerollSingle=action.type==='single' && i===0 && !!action.duplicate;
+          if(isRerollSingle){
+            const nextMarker=cat?.slotSeed!=null?plannerSeedPositionLabel(cat.slotSeed,positionMap):'';
+            plannerAddRerollNotice(cell,cat,nextMarker);
           }
           if(targetName){ plannerAddRouteTarget(cell,targetName); meta.targets++; }
           marked++;
@@ -1908,6 +1960,7 @@
       }
       if(action.type==='guaranteed'){
         drawNo++;
+        plannerShadowOtherPanels(panel,startMarker);
         const gCell=plannerRouteCell(panel,startMarker,true);
         const gNo=plannerRouteNoCell(panel,startMarker);
         const targetName=hitByOffset(action,action.acquired?.length||action.drawCost,true);
@@ -1930,6 +1983,14 @@
   }
   function renderPlannerRoute(search,targets,maxDraws,entries){
     const route=reconstructPlannerRoute(search.node),foundIds=new Set();
+    const routeValidation=validatePlannerRoute(route,search.startSeed,search.startLast);
+    if(!routeValidation.ok){
+      clearPlannerTableRoute();
+      setPlannerStatus(`路徑驗證失敗（步驟 ${routeValidation.index+1}）：${routeValidation.reason}。已停止顯示這條路徑，請重新計算。`,'err');
+      plannerResult.innerHTML='';
+      updatePlannerOutputVisibility();
+      return;
+    }
     for(const action of route) for(const h of action.hits||[]) foundIds.add(String(h.cat.id));
     const missing=targets.filter(t=>!foundIds.has(String(t.id)));
     const stats=analyzePlannerRoute(route,entries,targets);
@@ -2297,7 +2358,7 @@
             const rerolled=rerollCat(nextCat,dst.pool);
             if(!rerolled) continue;
             const target=rerollTarget(p+1,track,rerolled.steps);
-            lines.push(`表${dst.index} ${p+1}${track===0?'A':'B'} ${nextCat.name}`);
+            lines.push(`表${dst.index} ${p+1}${track===0?'A':'B'} ${nextCat.name} ↳ ${rerolled.name}`);
           }
           if(!lines.length) continue;
           const marker=`${p}${track===0?'A':'B'}`;
