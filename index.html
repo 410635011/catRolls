@@ -183,9 +183,23 @@
   .eventPickerItem{width:100%;display:block;text-align:left;border:0;background:transparent;color:#344054;border-radius:9px;padding:8px 9px;font-size:11.5px;font-weight:520;line-height:1.35;scroll-snap-align:none}
   .eventPickerItem:hover{background:#f1f5f7}
   .eventPickerItem.selected{background:#eaf1f5;color:#2f607f;font-weight:700}
+  /* v40: future-event hover / keyboard focus uses a dashed cue instead of the normal solid hover fill. */
+  .eventPickerItem.future:focus{outline:none}
+  .eventPickerItem.future:hover,
+  .eventPickerItem.future:focus-visible{
+    outline:1.5px dashed #607f9b;
+    outline-offset:-2px;
+    box-shadow:none;
+    background:#f7fafc;
+  }
   .eventPickerItem.hasGuaranteed{color:var(--guaranteed);font-weight:720}
   .eventPickerItem.hasGuaranteed:hover{background:#fff0f2;color:#c43e58}
   .eventPickerItem.hasGuaranteed.selected{background:#fdebed;color:#bd3852}
+  .eventPickerItem.future.hasGuaranteed:hover{
+    outline:1.5px dashed #c43e58;
+    outline-offset:-2px;
+    background:#fff7f8;
+  }
   .eventGroupMore{width:100%;display:block;text-align:center;border:0;background:#f5f7f9;color:#667785;border-radius:9px;padding:7px 9px;margin-top:3px;font-size:11.5px;font-weight:700;cursor:pointer}
   .eventGroupMore:hover{background:#eaf0f4;color:#2f607f}
   .eventPickerButton.hasGuaranteed .eventPickerLabel{color:var(--guaranteed);font-weight:760}
@@ -983,8 +997,9 @@
     return `${e.start || '?'} → ${e.end || '?'} ｜ ${shortName}${flags ? ' ['+flags+']' : ''}`;
   }
 
-  // 白金轉蛋／傳說轉蛋在原始資料中可能以多筆長期活動同時被判定為「進行中」。
-  // 每一類只保留開始日期最新的一筆在「進行中」；其餘移至最下方「過期特殊」。
+  // v38：同一個卡池若同時存在多筆「進行中」版本，只保留開始日期最新的一筆。
+  // 一般卡池以 gacha id 判斷是否為同一卡池；白金／傳說轉蛋可能跨 gacha id 更新，
+  // 因此仍以名稱類型合併判斷。被新版取代的舊版直接歸到「已過期」。
   function specialEventType(e) {
     const name=(e.name || battleData?.gacha?.[e.id]?.name || '').replace(/\s+/g,' ').trim();
     if (/白金.*轉蛋|白金轉蛋/.test(name)) return 'platinum';
@@ -992,32 +1007,39 @@
     return '';
   }
 
-  function specialLatestKeys(list) {
-    const latest={};
-    for (const e of list) {
-      const type=specialEventType(e);
-      if (!type || eventState(e).key!=='current') continue;
-      const old=latest[type];
-      if (!old || String(e.start||'').localeCompare(String(old.start||''))>0 ||
-          (String(e.start||'')===String(old.start||'') && String(e.key).localeCompare(String(old.key))>0)) {
-        latest[type]=e;
-      }
-    }
-    return new Set(Object.values(latest).map(e=>e.key));
+  function eventPoolIdentity(e) {
+    const special=specialEventType(e);
+    if (special) return `special:${special}`;
+    if (e.id!=null) return `gacha:${String(e.id)}`;
+    const name=(e.name || '').replace(/\s+/g,' ').trim();
+    return name ? `name:${name}` : `event:${String(e.key||'')}`;
   }
 
-  function eventDisplayGroup(e, latestSpecialKeys) {
+  function latestCurrentPoolKeys(list) {
+    const latest=new Map();
+    for (const e of list) {
+      if (eventState(e).key!=='current') continue;
+      const identity=eventPoolIdentity(e);
+      const old=latest.get(identity);
+      if (!old || String(e.start||'').localeCompare(String(old.start||''))>0 ||
+          (String(e.start||'')===String(old.start||'') && String(e.version||'').localeCompare(String(old.version||''))>0) ||
+          (String(e.start||'')===String(old.start||'') && String(e.version||'')===String(old.version||'') && String(e.key).localeCompare(String(old.key))>0)) {
+        latest.set(identity,e);
+      }
+    }
+    return new Set([...latest.values()].map(e=>e.key));
+  }
+
+  function eventDisplayGroup(e, latestPoolKeys) {
     const state=eventState(e).key;
-    const type=specialEventType(e);
-    if (state==='current' && type && !latestSpecialKeys.has(e.key)) return 'specialExpired';
+    if (state==='current' && !latestPoolKeys.has(e.key)) return 'expired';
     return state;
   }
 
   const EVENT_GROUPS=[
     {key:'future',label:'未開始'},
     {key:'current',label:'進行中'},
-    {key:'expired',label:'已過期'},
-    {key:'specialExpired',label:'過期特殊'}
+    {key:'expired',label:'已過期'}
   ];
 
   function closeEventPickers(except=null){
@@ -1066,10 +1088,10 @@
       updateEventPickerLabel(panel); return;
     }
     if(!(panel.expandedEventGroups instanceof Set)) panel.expandedEventGroups=new Set();
-    const latestSpecialKeys=specialLatestKeys(list);
+    const latestPoolKeys=latestCurrentPoolKeys(list);
     let renderedGroups=0;
     for(const def of EVENT_GROUPS){
-      const items=list.filter(e=>eventDisplayGroup(e,latestSpecialKeys)===def.key);
+      const items=list.filter(e=>eventDisplayGroup(e,latestPoolKeys)===def.key);
       if(!items.length) continue;
       if(renderedGroups>0){
         const divider=document.createElement('div');
@@ -1087,7 +1109,7 @@
       for(const item of (expanded ? items : items.slice(0,6))){
         const btn=document.createElement('button');
         btn.type='button';
-        btn.className='eventPickerItem'+(item.guaranteed?' hasGuaranteed':'');
+        btn.className='eventPickerItem '+def.key+(item.guaranteed?' hasGuaranteed':'');
         btn.dataset.key=item.key;
         btn.textContent=eventItemLabel(item);
         if(item.key===panel.eventSelect.value) btn.classList.add('selected');
@@ -1156,9 +1178,9 @@
       renderEventPickerMenu(panel,[]);
       return;
     }
-    const latestSpecialKeys=specialLatestKeys(list);
+    const latestPoolKeys=latestCurrentPoolKeys(list);
     for(const def of EVENT_GROUPS){
-      const items=list.filter(e=>eventDisplayGroup(e,latestSpecialKeys)===def.key);
+      const items=list.filter(e=>eventDisplayGroup(e,latestPoolKeys)===def.key);
       if(!items.length) continue;
       const og=document.createElement('optgroup');
       og.label=`${def.label} · ${items.length}`;
