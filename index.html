@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Battle Cats Seed Tracker v39</title>
+<title>Battle Cats Seed Tracker</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -525,6 +525,49 @@
   .plannerRouteShadowTag{position:absolute!important;z-index:6!important;right:3px;bottom:2px;max-width:calc(100% - 6px);padding:1px 4px;border-radius:4px;background:rgba(255,255,255,.88);color:#718592;border:1px dashed rgba(77,108,128,.42);font-size:8.3px;font-weight:750;line-height:1.15;pointer-events:none;white-space:nowrap}
   .plannerRouteRerollTag{position:absolute!important;z-index:7!important;left:3px;right:3px;bottom:2px;padding:1px 4px;border-radius:4px;background:rgba(255,247,231,.96);color:#8a6422;border:1px solid rgba(170,126,45,.34);font-size:8.5px;font-weight:800;line-height:1.2;text-align:center;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+
+  /* Seed history: recent seeds stored in Cookie (with localStorage fallback for file:// / blocked-cookie environments) */
+  .seedHistorySection{margin-top:-4px}
+  .seedHistoryHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+  .seedHistoryHead label{margin:0}
+  .seedHistoryCount{font-size:10.5px;color:#7b8794;font-weight:700}
+  .seedHistoryList{display:flex;flex-direction:column;gap:5px;max-height:210px;overflow:auto;padding-right:2px;scrollbar-width:thin;scrollbar-color:#bdc7d0 transparent}
+  .seedHistoryEmpty{padding:10px 11px;border:1px dashed #dce2e7;border-radius:9px;background:#fafbfc;color:#8a96a2;font-size:11px;line-height:1.45;text-align:center}
+  .seedHistoryItem{display:grid;grid-template-columns:minmax(0,1fr) 28px;gap:5px;align-items:stretch}
+  .seedHistoryUse{min-width:0;padding:7px 9px;border:1px solid #dce2e7;border-radius:9px;background:#fff;color:#344054;text-align:left;font-weight:600}
+  .seedHistoryUse:hover{background:#f5f8fa;border-color:#c8d4dd}
+  .seedHistorySeed{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#2f607f;font-weight:800}
+  .seedHistoryMeta{display:flex;align-items:center;gap:6px;min-width:0;margin-top:2px;color:#83909b;font-size:9.8px;font-weight:600;line-height:1.25}
+  .seedHistorySource{flex:0 0 auto;padding:1px 4px;border-radius:999px;background:#eef3f6;color:#60798a}
+  .seedHistoryTime{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .seedHistoryNotePreview{display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6f7f8b;font-size:10px;font-weight:600;line-height:1.25}
+  .seedHistoryActions{display:grid;grid-template-rows:1fr 1fr;gap:3px;min-height:0}
+  .seedHistoryNoteToggle,.seedHistoryDelete{width:28px;min-width:28px;padding:0;border-radius:8px;line-height:1}
+  .seedHistoryNoteToggle{border:1px solid #d8e1e7;background:#f7fafb;color:#60798a;font-size:13px;font-weight:700}
+  .seedHistoryNoteToggle:hover,.seedHistoryNoteToggle.active{background:#eaf1f5;color:#2f607f;border-color:#c5d5df}
+  .seedHistoryDelete{border:1px solid #ead8da;background:#fff7f7;color:#a75a62;font-size:16px;font-weight:500}
+  .seedHistoryDelete:hover{background:#fff0f0;color:#913f49;border-color:#dfc3c6}
+  .seedHistoryNoteEditor{grid-column:1/-1;padding:7px 8px;border:1px solid #dce2e7;border-radius:9px;background:#f8fafb}
+  .seedHistoryNoteEditRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:5px;align-items:center}
+  .seedHistoryNoteInput{min-width:0!important;width:100%!important;min-height:34px;padding:6px 8px!important;border-radius:8px!important;font-size:11px!important}
+  .seedHistoryNoteSave,.seedHistoryNoteCancel{padding:7px 8px;border-radius:7px;font-size:10.5px;font-weight:750;white-space:nowrap}
+  .seedHistoryNoteSave{background:#eaf1f5;color:#2f607f;border:1px solid #c5d5df}
+  .seedHistoryNoteSave:hover{background:#ddebf1}
+  .seedHistoryNoteCancel{background:#f3f5f7;color:#74818c;border:1px solid #dfe4e8}
+  .seedHistoryNoteCounter{margin-top:4px;text-align:right;color:#98a2ab;font-size:9.5px;font-weight:600}
+
+  /* compact settings controls */
+  .dataSettingsSection{margin-bottom:14px}
+  .dataSettingsToggleBtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid #d7dee5;border-radius:10px;background:#f5f7f9;color:#475467;font-size:12px;font-weight:800;text-align:left}
+  .dataSettingsToggleBtn:hover{background:#edf2f5;border-color:#c8d2da}
+  .dataSettingsToggleBtn[aria-expanded="true"]{background:#eaf1f5;color:#2f607f;border-color:#c5d5df}
+  .dataSettingsChevron{font-size:11px;color:#7e8c98;transition:transform .16s ease}
+  .dataSettingsToggleBtn[aria-expanded="true"] .dataSettingsChevron{transform:rotate(180deg)}
+  .dataSettingsContent{margin-top:9px;padding:10px;border:1px solid #e0e5e9;border-radius:11px;background:#fafbfc}
+  .dataSettingsContent>.section:last-child{margin-bottom:0}
+  .dataSettingsContent .sourceBox{margin-bottom:12px;background:#fff}
+  .plannerElevenDetails{margin-top:7px}
+
 </style>
 </head>
 <body>
@@ -538,44 +581,53 @@
     <div class="leftRail" id="leftRail">
     <aside class="card panel" id="settingsPanel">
       <div class="panelCompactTitle"><span>設定</span></div>
-      <div class="section sourceBox">
-        <div class="sourceTop">
-          <div class="sourceTitle">台版資料來源</div>
-          <button class="secondary" id="updateDataBtn">更新 GitLab 資料</button>
-        </div>
-        <div id="dataMeta" class="sourceMeta">尚未載入。第一次使用請按「更新 GitLab 資料」。</div>
-      </div>
+      <div class="section dataSettingsSection">
+        <button type="button" class="dataSettingsToggleBtn" id="dataSettingsToggle" aria-expanded="false">
+          <span>資料來源與模式</span><span class="dataSettingsChevron">▼</span>
+        </button>
+        <div class="dataSettingsContent hidden" id="dataSettingsContent">
+          <div class="section sourceBox">
+            <div class="sourceTop">
+              <div class="sourceTitle">台版資料來源</div>
+              <button class="secondary" id="updateDataBtn">更新 GitLab 資料</button>
+            </div>
+            <div id="dataMeta" class="sourceMeta">尚未載入。第一次使用請按「更新 GitLab 資料」。</div>
+          </div>
 
-      <div class="section">
-        <label>資料模式</label>
-        <div class="modeRow">
-          <label class="mode"><input type="radio" name="dataMode" value="gitlab" checked> GitLab 自動資料</label>
-          <label class="mode"><input type="radio" name="dataMode" value="manual"> 手動卡池</label>
-        </div>
-      </div>
+          <div class="section">
+            <label>資料模式</label>
+            <div class="modeRow">
+              <label class="mode"><input type="radio" name="dataMode" value="gitlab" checked> GitLab 自動資料</label>
+              <label class="mode"><input type="radio" name="dataMode" value="manual"> 手動卡池</label>
+            </div>
+          </div>
 
-      <div id="gitlabPanel">
-        <div class="section">
-          <label for="eventSearch">活動篩選</label>
-          <input id="eventSearch" type="text" placeholder="搜尋活動名稱、Gacha ID、日期…" />
-          <label class="check"><input id="activeOnly" type="checkbox"> 只顯示尚未結束的活動</label>
-        </div>
-      </div>
-
-      <div id="manualPanel" class="hidden">
-        <div class="section">
-          <label for="poolInput">手動卡池資料</label>
-          <textarea id="poolInput" spellcheck="false"></textarea>
-        </div>
-        <div class="section btns">
-          <button class="secondary" id="sampleBtn">載入範例</button>
-          <button class="secondary" id="saveManualBtn">儲存手動資料</button>
+          <div id="manualPanel" class="hidden">
+            <div class="section">
+              <label for="poolInput">手動卡池資料</label>
+              <textarea id="poolInput" spellcheck="false"></textarea>
+            </div>
+            <div class="section btns">
+              <button class="secondary" id="sampleBtn">載入範例</button>
+              <button class="secondary" id="saveManualBtn">儲存手動資料</button>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="section">
         <label for="seedInput">Seed</label>
         <input id="seedInput" type="text" inputmode="numeric" value="373531645" placeholder="0 ~ 4294967295" />
+      </div>
+
+      <div class="section seedHistorySection">
+        <div class="seedHistoryHead">
+          <label>最近使用 Seed</label>
+          <span class="seedHistoryCount" id="seedHistoryCount">0 筆</span>
+        </div>
+        <div class="seedHistoryList" id="seedHistoryList">
+          <div class="seedHistoryEmpty">尚無使用紀錄。</div>
+        </div>
       </div>
 
       <div class="section row2">
@@ -598,17 +650,7 @@
         <div id="plannerSourceMeta" class="plannerSourceMeta">目前沒有可用卡池。</div>
       </div>
       <div class="section">
-        <label for="plannerSearch">選擇目標角色</label>
-        <div class="plannerControls">
-          <input id="plannerSearch" type="text" placeholder="搜尋角色名稱…" />
-          <select id="plannerRarityFilter" aria-label="稀有度篩選">
-            <option value="all">全部稀有度</option>
-            <option value="legend">Legend Rare</option>
-            <option value="uber">Uber Rare</option>
-            <option value="super">Super Rare</option>
-            <option value="rare">Rare</option>
-          </select>
-        </div>
+        <label>選擇目標角色</label>
         <div class="plannerQuickRow"><span id="plannerListMeta" class="plannerListMeta">0 個角色</span><button type="button" class="secondary" id="plannerClearBtn">清除選取</button></div>
         <div id="plannerCharacterList" class="plannerCharacterList"><div class="plannerEmpty">載入卡池後會顯示所有可抽角色。</div></div>
       </div>
@@ -623,16 +665,16 @@
           <div class="plannerModeHint hidden" id="plannerModeHint">優先讓總抽數最少；同抽數時優先較少切換卡池。</div>
         </div>
         <div class="plannerModeBox">
-          <label>11 連抽限制</label>
-          <label class="plannerElevenToggle"><input id="plannerLimitElevenEnabled" type="checkbox"> 限制最多 11 連次數</label>
-          <div class="plannerElevenLimitRow disabled" id="plannerElevenLimitRow"><span>最多</span><input id="plannerMaxEleven" type="number" min="0" max="90" value="3" disabled><span>次 11 連</span></div>
-          <div class="plannerModeHint">只限制「11 連必中」操作；Step-up 不計入這個上限。</div>
+          <label class="plannerElevenToggle"><input id="plannerLimitElevenEnabled" type="checkbox"> 11 連抽限制</label>
+          <div class="plannerElevenDetails hidden" id="plannerElevenDetails">
+            <div class="plannerElevenLimitRow" id="plannerElevenLimitRow"><span>最多</span><input id="plannerMaxEleven" type="number" min="0" max="90" value="3" disabled><span>次 11 連</span></div>
+          </div>
         </div>
-        <div class="plannerLimitLine"><span>最長搜尋距離</span><b id="plannerSearchLimit">沿用「未來位數」</b></div>
+        <div class="plannerLimitLine hidden"><span>最長搜尋距離</span><b id="plannerSearchLimit">沿用「未來位數」</b></div>
         <button type="button" class="plannerCalcBtn" id="plannerCalcBtn">計算收集路徑</button>
         <div class="plannerBusy" id="plannerBusy" role="status" aria-live="polite"><span class="plannerBusySpinner" aria-hidden="true"></span><span id="plannerBusyText">計算中…</span></div>
         <div class="plannerTiny hidden">所有勾選角色都是「硬性收集目標」。在「少錯過超激」模式中，若同一抽位於不同表出現重疊，會先保護尚未蒐集的勾選角色，再比較未勾選 Uber Rare 的錯過數。「NP 最大化」會先快速找出最短抽齊所需抽數，再只搜尋「最短抽數 +20 抽」以內的路徑，避免因未來位數設定很大而搜尋過久；指定角色第一次取得視為收藏、不計 NP，之後重複取得與其他沿途角色依 Legend Rare 150／Uber Rare 50／Super Rare 15／Rare 5 計算。11 連／Step-up 最後的必中保底會正常計入 NP。</div>
-        <div id="plannerStatus" class="plannerStatus">先選擇想收集的角色。</div>
+        <div id="plannerStatus" class="plannerStatus hidden">先選擇想收集的角色。</div>
         <div class="plannerTiny hidden">計算結果會顯示在頁面下方的大型結果區塊。</div>
       </div>
     </aside>
@@ -677,6 +719,11 @@
   const RANGE_PREF_KEY = 'battle-cats-range-prefs-v1';
   const SESSION_PREF_KEY = 'battle-cats-session-prefs-v1';
   const PLANNER_PREF_KEY = 'battle-cats-planner-prefs-v1';
+  const SEED_HISTORY_COOKIE = 'battle-cats-seed-history-v1';
+  const SEED_HISTORY_FALLBACK_KEY = 'battle-cats-seed-history-fallback-v1';
+  const SEED_HISTORY_NOTES_KEY = 'battle-cats-seed-history-notes-v1';
+  const SEED_HISTORY_MAX = 20;
+  const SEED_HISTORY_MAX_AGE = 60 * 60 * 24 * 365;
   const DATA_URLS = [
     'https://gitlab.com/godfat/battle-cats-rolls/-/raw/master/build/bc-tw.yaml',
     'https://gitlab.com/api/v4/projects/godfat%2Fbattle-cats-rolls/repository/files/build%2Fbc-tw.yaml/raw?ref=master'
@@ -684,19 +731,20 @@
 
   const $ = id => document.getElementById(id);
   const seedInput = $('seedInput'), pastInput = $('pastInput'), futureInput = $('futureInput');
-  const eventSearch = $('eventSearch'), activeOnly = $('activeOnly');
+  const seedHistoryList = $('seedHistoryList'), seedHistoryCount = $('seedHistoryCount');
   const poolInput = $('poolInput'), statusEl = $('status');
   const updateDataBtn = $('updateDataBtn'), dataMeta = $('dataMeta'), calcBtn = $('calcBtn');
-  const gitlabPanel = $('gitlabPanel'), manualPanel = $('manualPanel');
+  const manualPanel = $('manualPanel');
+  const dataSettingsToggle = $('dataSettingsToggle'), dataSettingsContent = $('dataSettingsContent');
   const comparePanelsEl = $('comparePanels'), addCompareBtn = $('addCompareBtn');
   const plannerRouteLegendControls = $('plannerRouteLegendControls'), clearPlannerMarksBtn = $('clearPlannerMarksBtn');
   const appGrid = $('appGrid'), settingsToggle = $('settingsToggle');
   const leftRail = $('leftRail'), settingsPanel = $('settingsPanel'), plannerPanel = $('plannerPanel'), plannerToggle = $('plannerToggle');
-  const plannerSearch = $('plannerSearch'), plannerRarityFilter = $('plannerRarityFilter'), plannerCharacterList = $('plannerCharacterList');
+  const plannerCharacterList = $('plannerCharacterList');
   const plannerSourceMeta = $('plannerSourceMeta'), plannerSelectedCount = $('plannerSelectedCount'), plannerListMeta = $('plannerListMeta');
   const plannerClearBtn = $('plannerClearBtn'), plannerCalcBtn = $('plannerCalcBtn'), plannerStatus = $('plannerStatus'), plannerResult = $('plannerResult'), plannerSearchLimit = $('plannerSearchLimit');
   const plannerOptimizationMode = $('plannerOptimizationMode'), plannerModeHint = $('plannerModeHint');
-  const plannerLimitElevenEnabled = $('plannerLimitElevenEnabled'), plannerMaxEleven = $('plannerMaxEleven'), plannerElevenLimitRow = $('plannerElevenLimitRow'), plannerOutputPanel = $('plannerOutputPanel');
+  const plannerLimitElevenEnabled = $('plannerLimitElevenEnabled'), plannerMaxEleven = $('plannerMaxEleven'), plannerElevenLimitRow = $('plannerElevenLimitRow'), plannerElevenDetails = $('plannerElevenDetails'), plannerOutputPanel = $('plannerOutputPanel');
   const plannerBusy = $('plannerBusy'), plannerBusyText = $('plannerBusyText');
 
   let battleData = null;
@@ -726,6 +774,163 @@
   }
   function storageGet(key){ try { return localStorage.getItem(key); } catch (_) { return null; } }
   function storageSet(key,value){ try { localStorage.setItem(key,value); return true; } catch (_) { return false; } }
+
+  function getCookie(name){
+    try{
+      const prefix=encodeURIComponent(name)+'=';
+      const row=String(document.cookie||'').split('; ').find(x=>x.startsWith(prefix));
+      return row ? decodeURIComponent(row.slice(prefix.length)) : null;
+    }catch(_){ return null; }
+  }
+  function setCookie(name,value,maxAge=SEED_HISTORY_MAX_AGE){
+    try{
+      let cookie=`${encodeURIComponent(name)}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+      if(location.protocol==='https:') cookie+='; Secure';
+      document.cookie=cookie;
+      return getCookie(name)===value;
+    }catch(_){ return false; }
+  }
+  function normalizeSeedHistoryNote(value){
+    return [...String(value??'').trim()].slice(0,20).join('');
+  }
+  function loadSeedHistoryNotes(){
+    try{
+      const raw=storageGet(SEED_HISTORY_NOTES_KEY);
+      if(!raw) return {};
+      const parsed=JSON.parse(raw);
+      if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)) return {};
+      const out={};
+      for(const [seed,note] of Object.entries(parsed)){
+        if(!/^\d+$/.test(seed)) continue;
+        const clean=normalizeSeedHistoryNote(note);
+        if(clean) out[seed]=clean;
+      }
+      return out;
+    }catch(_){ return {}; }
+  }
+  function saveSeedHistoryNote(seed,note){
+    const seedText=String(seed);
+    const notes=loadSeedHistoryNotes();
+    const clean=normalizeSeedHistoryNote(note);
+    if(clean) notes[seedText]=clean; else delete notes[seedText];
+    storageSet(SEED_HISTORY_NOTES_KEY,JSON.stringify(notes));
+    return clean;
+  }
+  function deleteSeedHistoryNote(seed){
+    const notes=loadSeedHistoryNotes();
+    delete notes[String(seed)];
+    storageSet(SEED_HISTORY_NOTES_KEY,JSON.stringify(notes));
+  }
+  function normalizeSeedHistory(raw){
+    if(!Array.isArray(raw)) return [];
+    const seen=new Set(), out=[];
+    for(const item of raw){
+      const seed=String(item?.seed??'').trim();
+      if(!/^\d+$/.test(seed)) continue;
+      const n=Number(seed);
+      if(!Number.isSafeInteger(n)||n<0||n>=U32||seen.has(seed)) continue;
+      seen.add(seed);
+      const lastCatId=(item?.lastCatId==null||item.lastCatId==='')?null:String(item.lastCatId);
+      const usedAt=Number.isFinite(Number(item?.usedAt))?Number(item.usedAt):0;
+      const source=['search','jump','history'].includes(item?.source)?item.source:'search';
+      out.push({seed,lastCatId,usedAt,source});
+      if(out.length>=SEED_HISTORY_MAX) break;
+    }
+    return out.sort((a,b)=>b.usedAt-a.usedAt).slice(0,SEED_HISTORY_MAX);
+  }
+  function loadSeedHistory(){
+    const cookieRaw=getCookie(SEED_HISTORY_COOKIE);
+    if(cookieRaw){
+      try{ return normalizeSeedHistory(JSON.parse(cookieRaw)); }catch(_){ }
+    }
+    try{
+      const fallback=storageGet(SEED_HISTORY_FALLBACK_KEY);
+      return fallback ? normalizeSeedHistory(JSON.parse(fallback)) : [];
+    }catch(_){ return []; }
+  }
+  function saveSeedHistory(items){
+    const normalized=normalizeSeedHistory(items);
+    const json=JSON.stringify(normalized);
+    // Cookie is the primary store requested by this feature. The mirror keeps local file previews usable too.
+    setCookie(SEED_HISTORY_COOKIE,json);
+    storageSet(SEED_HISTORY_FALLBACK_KEY,json);
+    return normalized;
+  }
+  function seedHistorySourceLabel(source){
+    if(source==='jump') return '介面跳轉';
+    if(source==='history') return '歷史切換';
+    return '搜尋';
+  }
+  function formatSeedHistoryTime(ts){
+    if(!ts) return '時間未知';
+    try{
+      return new Date(ts).toLocaleString('zh-TW',{
+        year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
+      });
+    }catch(_){ return new Date(ts).toLocaleString(); }
+  }
+  function renderSeedHistory(){
+    if(!seedHistoryList||!seedHistoryCount) return;
+    const items=loadSeedHistory();
+    const notes=loadSeedHistoryNotes();
+    seedHistoryCount.textContent=`${items.length} 筆`;
+    if(!items.length){
+      seedHistoryList.innerHTML='<div class="seedHistoryEmpty">尚無使用紀錄。</div>';
+      return;
+    }
+    seedHistoryList.innerHTML=items.map(item=>{
+      const last=item.lastCatId==null?'':` data-last-cat-id="${esc(item.lastCatId)}"`;
+      const note=normalizeSeedHistoryNote(notes[item.seed]||'');
+      const notePreview=note?`<span class="seedHistoryNotePreview">備註：${esc(note)}</span>`:'';
+      return `<div class="seedHistoryItem" data-seed-history-row="${esc(item.seed)}">`+
+        `<button type="button" class="seedHistoryUse" data-seed-history-use="${esc(item.seed)}"${last} title="切換回 Seed ${esc(item.seed)}">`+
+          `<span class="seedHistorySeed">${esc(item.seed)}</span>`+
+          `<span class="seedHistoryMeta"><span class="seedHistorySource">${esc(seedHistorySourceLabel(item.source))}</span><span class="seedHistoryTime">${esc(formatSeedHistoryTime(item.usedAt))}</span></span>`+
+          notePreview+
+        `</button>`+
+        `<div class="seedHistoryActions">`+
+          `<button type="button" class="seedHistoryNoteToggle" data-seed-history-note-toggle="${esc(item.seed)}" title="新增或編輯備註" aria-label="編輯 Seed ${esc(item.seed)} 的備註">✎</button>`+
+          `<button type="button" class="seedHistoryDelete" data-seed-history-delete="${esc(item.seed)}" title="刪除這筆 Seed 紀錄" aria-label="刪除 Seed ${esc(item.seed)}">×</button>`+
+        `</div>`+
+        `<div class="seedHistoryNoteEditor hidden" data-seed-history-note-editor="${esc(item.seed)}">`+
+          `<div class="seedHistoryNoteEditRow">`+
+            `<input type="text" class="seedHistoryNoteInput" data-seed-history-note-input="${esc(item.seed)}" maxlength="20" value="${esc(note)}" placeholder="輸入備註，最多 20 字" />`+
+            `<button type="button" class="seedHistoryNoteSave" data-seed-history-note-save="${esc(item.seed)}">儲存</button>`+
+            `<button type="button" class="seedHistoryNoteCancel" data-seed-history-note-cancel="${esc(item.seed)}">取消</button>`+
+          `</div>`+
+          `<div class="seedHistoryNoteCounter"><span data-seed-history-note-count>${[...note].length}</span>/20</div>`+
+        `</div>`+
+      `</div>`;
+    }).join('');
+  }
+  function recordSeedHistory(seed,lastCatId=currentLastCatId,source='search'){
+    const seedText=String(u32(Number(seed)));
+    const items=loadSeedHistory().filter(item=>item.seed!==seedText);
+    items.unshift({
+      seed:seedText,
+      lastCatId:(lastCatId==null||lastCatId==='')?null:String(lastCatId),
+      usedAt:Date.now(),
+      source:['search','jump','history'].includes(source)?source:'search'
+    });
+    saveSeedHistory(items);
+    renderSeedHistory();
+  }
+  function deleteSeedHistory(seed){
+    saveSeedHistory(loadSeedHistory().filter(item=>item.seed!==String(seed)));
+    deleteSeedHistoryNote(seed);
+    renderSeedHistory();
+  }
+  function useSeedHistory(seed,lastCatId=null){
+    const n=Number(seed);
+    if(!Number.isSafeInteger(n)||n<0||n>=U32) return;
+    currentLastCatId=(lastCatId==null||lastCatId==='')?null:String(lastCatId);
+    seedInput.value=String(u32(n));
+    saveSessionPrefs();
+    invalidatePlannerResult('Seed 已從歷史紀錄切換，請重新計算收集路徑。');
+    calculate({recordHistory:true,historySource:'history'});
+    markCurrentNextPosition();
+    setStatus(`已切回 Seed：${esc(String(u32(n)))}`,'ok');
+  }
   function loadRangePrefs(){
     try{
       const raw=storageGet(RANGE_PREF_KEY); if(!raw) return;
@@ -757,6 +962,7 @@
     const enabled=!!plannerLimitElevenEnabled.checked;
     plannerMaxEleven.disabled=!enabled;
     plannerElevenLimitRow.classList.toggle('disabled',!enabled);
+    plannerElevenDetails.classList.toggle('hidden',!enabled);
   }
   function plannerElevenLimitValue(){
     if(!plannerLimitElevenEnabled.checked) return null;
@@ -1131,14 +1337,7 @@
 
   function getFilteredEvents() {
     if (!battleData) return [];
-    const q=eventSearch.value.trim().toLowerCase();
-    const onlyActive=activeOnly.checked;
-    const list=battleData.events.filter(e => {
-      if (onlyActive && !isActiveEvent(e)) return false;
-      if (!q) return true;
-      const hay=`${e.key} ${e.id} ${e.name} ${battleData.gacha[e.id]?.name || ''}`.toLowerCase();
-      return hay.includes(q);
-    });
+    const list=battleData.events.slice();
     visibleEvents=list;
     return list;
   }
@@ -1361,9 +1560,10 @@
   }
 
 
+  let plannerHasSearched=false;
   function setPlannerStatus(message,type=''){
     plannerStatus.textContent=String(message||'');
-    plannerStatus.className='plannerStatus'+(type?' '+type:'');
+    plannerStatus.className='plannerStatus'+(type?' '+type:'')+(plannerHasSearched?'':' hidden');
   }
   function setPlannerBusy(active,text='計算中…'){
     if(!plannerBusy) return;
@@ -1443,14 +1643,12 @@
     return `<label class="plannerCatRow${exclusiveClass}${selected?' selected':''}"${exclusiveTable?` data-exclusive-table="${exclusiveTable}"`:''}><input class="plannerTargetCheck" type="checkbox" data-target-id="${esc(c.id)}"${selected?' checked':''}><span class="plannerCatName" title="${esc(c.name)}">${esc(c.name)}</span><span class="plannerCatMeta"><span class="plannerRarity ${esc(c.rarity)}">${esc(rarityLabel(c.rarity))}</span>${badgesHtml}</span></label>`;
   }
   function renderPlannerCharacterList(){
-    const q=plannerSearch.value.trim().toLowerCase();
-    const rarity=plannerRarityFilter.value;
-    const filtered=plannerCharacters.filter(c=>(rarity==='all'||c.rarity===rarity) && (!q || `${c.name} ${c.id}`.toLowerCase().includes(q)));
+    const filtered=plannerCharacters;
     plannerSelectedCount.textContent=`已選 ${plannerSelectedIds.size}`;
-    plannerListMeta.textContent=`顯示 ${filtered.length} / ${plannerCharacters.length} 個角色`;
+    plannerListMeta.textContent=`${plannerCharacters.length} 個角色`;
     plannerClearBtn.disabled=plannerSelectedIds.size===0;
     plannerCalcBtn.disabled=plannerSelectedIds.size===0 || !plannerCharacters.length;
-    if(!filtered.length){ plannerCharacterList.innerHTML='<div class="plannerEmpty">目前篩選條件下沒有角色。</div>'; return; }
+    if(!filtered.length){ plannerCharacterList.innerHTML='<div class="plannerEmpty">目前沒有可用角色。</div>'; return; }
 
     const groups=[];
     const legendItems=filtered.filter(c=>c.rarity==='legend').sort(plannerCharacterSort);
@@ -2040,6 +2238,8 @@
     else plannerModeHint.textContent='所有勾選角色都必須收集；使用 A* 搜尋最少總抽數。Legend Rare 會優先引導搜尋，但不改變「最短抽齊」的最佳解判定。';
   }
   async function calculatePlannerRoute(){
+    plannerHasSearched=true;
+    plannerStatus.classList.remove('hidden');
     try{
       refreshPlannerCharacters(false);
       const targets=plannerCharacters.filter(c=>plannerSelectedIds.has(c.id));
@@ -2555,9 +2755,10 @@
     return built;
   }
 
-  function calculate(){
+  function calculate(options={}){
     try{
-      readSeed();
+      const {recordHistory=false,historySource='search'}=(options&&typeof options==='object')?options:{};
+      const seedForHistory=readSeed();
       clampInt(pastInput.value,0,200,'過去位數');
       clampInt(futureInput.value,1,1000,'未來位數');
       let ok=0, firstError=null;
@@ -2571,7 +2772,7 @@
           if(!firstError) firstError=e;
         }
       }
-      if(ok){ refreshCrossPanelWarnings(); saveSessionPrefs(); refreshPlannerCharacters(); setStatus(`已更新 ${ok} 張比較表。`,'ok'); }
+      if(ok){ if(recordHistory) recordSeedHistory(seedForHistory,currentLastCatId,historySource); refreshCrossPanelWarnings(); saveSessionPrefs(); refreshPlannerCharacters(); setStatus(`已更新 ${ok} 張比較表。`,'ok'); }
       else throw firstError || new Error('沒有可計算的比較表。');
     }catch(e){setStatus(esc(e.message||e),'err');}
   }
@@ -2580,7 +2781,7 @@
     currentLastCatId=String(lastId);
     seedInput.value=String(u32(Number(seed)));
     saveSessionPrefs();
-    calculate();
+    calculate({recordHistory:true,historySource:'jump'});
     activatePanel(panel);
     markCurrentNextPosition();
     setStatus(`已切換 Seed：${esc(catName||('Cat #'+lastId))}`,'ok');
@@ -2610,7 +2811,6 @@
 
   function syncMode(){
     const git=currentMode()==='gitlab';
-    gitlabPanel.classList.toggle('hidden',!git);
     manualPanel.classList.toggle('hidden',git);
     panelStates.forEach(panel=>panel.eventArea.classList.toggle('hidden',!git));
     if(git&&!battleData)setStatus('目前選擇 GitLab 自動資料；請先按「更新 GitLab 資料」。','warn');
@@ -2650,26 +2850,94 @@
   try{setSettingsVisible(localStorage.getItem('battle-cats-settings-visible-v1')!=='0');}catch(_){setSettingsVisible(true);}
   try{setPlannerVisible(localStorage.getItem('battle-cats-planner-visible-v1')==='1');}catch(_){setPlannerVisible(false);}
 
+  dataSettingsToggle.addEventListener('click',()=>{
+    const open=dataSettingsContent.classList.contains('hidden');
+    dataSettingsContent.classList.toggle('hidden',!open);
+    dataSettingsToggle.setAttribute('aria-expanded',open?'true':'false');
+  });
   updateDataBtn.addEventListener('click',updateGitlabData);
-  calcBtn.addEventListener('click',calculate);
+  calcBtn.addEventListener('click',()=>calculate({recordHistory:true,historySource:'search'}));
   addCompareBtn.addEventListener('click',addComparisonPanel);
-  eventSearch.addEventListener('input',()=>{
-    renderEventOptions(true);
-  });
-  activeOnly.addEventListener('change',()=>{
-    renderEventOptions(true);
-    calculate();
-  });
   document.querySelectorAll('input[name="dataMode"]').forEach(r=>r.addEventListener('change',syncMode));
   $('sampleBtn').addEventListener('click',()=>{poolInput.value=sampleData;setStatus('已載入手動示範資料。');});
   $('saveManualBtn').addEventListener('click',()=>{storageSet(MANUAL_CACHE_KEY,poolInput.value);setStatus('手動卡池已儲存在本機瀏覽器。','ok');});
-  seedInput.addEventListener('keydown',e=>{if(e.key==='Enter')calculate();});
+  seedInput.addEventListener('keydown',e=>{if(e.key==='Enter')calculate({recordHistory:true,historySource:'search'});});
   seedInput.addEventListener('input',()=>{ currentLastCatId=null; saveSessionPrefs(); plannerSearchLimit.textContent=`最多 ${String(futureInput.value||'?')} 抽`; invalidatePlannerResult('Seed 已變更，請重新計算。'); });
+  seedHistoryList.addEventListener('click',e=>{
+    const del=e.target.closest('[data-seed-history-delete]');
+    if(del){
+      e.preventDefault();
+      e.stopPropagation();
+      deleteSeedHistory(del.dataset.seedHistoryDelete);
+      return;
+    }
+    const noteToggle=e.target.closest('[data-seed-history-note-toggle]');
+    if(noteToggle){
+      e.preventDefault();
+      e.stopPropagation();
+      const row=noteToggle.closest('[data-seed-history-row]');
+      const editor=row?.querySelector('[data-seed-history-note-editor]');
+      if(editor){
+        const opening=editor.classList.contains('hidden');
+        seedHistoryList.querySelectorAll('[data-seed-history-note-editor]').forEach(el=>el.classList.add('hidden'));
+        seedHistoryList.querySelectorAll('[data-seed-history-note-toggle]').forEach(el=>el.classList.remove('active'));
+        if(opening){
+          editor.classList.remove('hidden');
+          noteToggle.classList.add('active');
+          const input=editor.querySelector('[data-seed-history-note-input]');
+          requestAnimationFrame(()=>{ input?.focus(); input?.setSelectionRange(input.value.length,input.value.length); });
+        }
+      }
+      return;
+    }
+    const noteSave=e.target.closest('[data-seed-history-note-save]');
+    if(noteSave){
+      e.preventDefault();
+      e.stopPropagation();
+      const row=noteSave.closest('[data-seed-history-row]');
+      const input=row?.querySelector('[data-seed-history-note-input]');
+      saveSeedHistoryNote(noteSave.dataset.seedHistoryNoteSave,input?.value||'');
+      renderSeedHistory();
+      return;
+    }
+    const noteCancel=e.target.closest('[data-seed-history-note-cancel]');
+    if(noteCancel){
+      e.preventDefault();
+      e.stopPropagation();
+      renderSeedHistory();
+      return;
+    }
+    const use=e.target.closest('[data-seed-history-use]');
+    if(use){
+      e.preventDefault();
+      const last=use.hasAttribute('data-last-cat-id')?use.dataset.lastCatId:null;
+      useSeedHistory(use.dataset.seedHistoryUse,last);
+    }
+  });
+  seedHistoryList.addEventListener('input',e=>{
+    const input=e.target.closest('[data-seed-history-note-input]');
+    if(!input) return;
+    const clean=[...input.value].slice(0,20).join('');
+    if(input.value!==clean) input.value=clean;
+    const editor=input.closest('[data-seed-history-note-editor]');
+    const count=editor?.querySelector('[data-seed-history-note-count]');
+    if(count) count.textContent=String([...input.value].length);
+  });
+  seedHistoryList.addEventListener('keydown',e=>{
+    const input=e.target.closest('[data-seed-history-note-input]');
+    if(!input) return;
+    if(e.key==='Enter'){
+      e.preventDefault();
+      saveSeedHistoryNote(input.dataset.seedHistoryNoteInput,input.value);
+      renderSeedHistory();
+    }else if(e.key==='Escape'){
+      e.preventDefault();
+      renderSeedHistory();
+    }
+  });
   pastInput.addEventListener('change',()=>{saveRangePrefs();calculate();});
   futureInput.addEventListener('change',()=>{saveRangePrefs();plannerSearchLimit.textContent=`最多 ${String(futureInput.value||'?')} 抽`;calculate();});
 
-  plannerSearch.addEventListener('input',renderPlannerCharacterList);
-  plannerRarityFilter.addEventListener('change',renderPlannerCharacterList);
   plannerOptimizationMode.addEventListener('change',()=>{updatePlannerModeHint();invalidatePlannerResult('最佳化模式已變更，請重新計算。');});
   plannerLimitElevenEnabled.addEventListener('change',()=>{syncPlannerElevenLimitUi();savePlannerPrefs();invalidatePlannerResult('11 連次數限制已變更，請重新計算。');});
   plannerMaxEleven.addEventListener('change',()=>{
@@ -2695,6 +2963,7 @@
   const startupSession=loadSessionPrefs();
   seedInput.value=startupSession.seed || '373531645';
   currentLastCatId=startupSession.lastCatId;
+  renderSeedHistory();
   poolInput.value=storageGet(MANUAL_CACHE_KEY)||sampleData;
   const startupKeys=startupSession.eventKeys.length ? startupSession.eventKeys : [''];
   for(let i=0;i<Math.min(MAX_PANELS,Math.max(1,startupKeys.length));i++) createComparisonPanel(startupKeys[i] || '');
