@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Battle Cats Seed Tracker</title>
+<title>🐈 Battle Cats Seed Tracker</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -379,6 +379,24 @@
   }
 
 
+  /* v41: source/license dialog */
+  .sourceLicenseModal{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(27,36,44,.38);backdrop-filter:blur(3px)}
+  .sourceLicenseModal.hidden{display:none!important}
+  .sourceLicenseDialog{width:min(520px,100%);max-height:min(78vh,680px);overflow:auto;background:#fffdf9;border:1px solid #d8dee4;border-radius:16px;box-shadow:0 22px 60px rgba(26,39,52,.22)}
+  .sourceLicenseHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #e5e9ed;background:#fafbfc;position:sticky;top:0;z-index:2}
+  .sourceLicenseTitle{font-size:14px;font-weight:850;color:#344054}
+  .sourceLicenseClose{width:32px;height:32px;padding:0;border:1px solid #d7dee5;border-radius:9px;background:#fff;color:#6b7783;font-size:20px;line-height:1}
+  .sourceLicenseClose:hover{background:#f2f5f7;color:#344054}
+  .sourceLicenseBody{padding:15px 16px 17px;color:#475467;font-size:12px;line-height:1.65}
+  .sourceLicenseBlock{padding:11px 12px;border:1px solid #e0e5ea;border-radius:11px;background:#fafbfc}
+  .sourceLicenseBlock+.sourceLicenseBlock{margin-top:9px}
+  .sourceLicenseBlock strong{display:block;margin-bottom:3px;color:#344054;font-size:12.5px}
+  .sourceLicenseBody a{color:#2f6781;text-decoration:none;font-weight:700;overflow-wrap:anywhere}
+  .sourceLicenseBody a:hover{text-decoration:underline;text-underline-offset:2px}
+  .sourceLicenseNote{margin-top:10px;color:#7b8794;font-size:11px;line-height:1.55}
+  body.sourceLicenseOpen{overflow:hidden}
+
+
   /* v21: keep every comparison table at the same max width as single-panel mode */
   .comparePanels .comparisonCard,
   .grid.settingsCollapsed .comparePanels .comparisonCard{
@@ -640,9 +658,33 @@
 
     
       <div class="section settingsLicenseSection">
-        <button type="button" class="sourceLicenseBtn settingsLicenseBtn">來源與授權</button>
+        <button type="button" class="sourceLicenseBtn settingsLicenseBtn" id="sourceLicenseBtn" aria-haspopup="dialog" aria-controls="sourceLicenseModal">來源與授權</button>
       </div>
 </aside>
+
+    <div class="sourceLicenseModal hidden" id="sourceLicenseModal" role="dialog" aria-modal="true" aria-labelledby="sourceLicenseTitle">
+      <div class="sourceLicenseDialog">
+        <div class="sourceLicenseHead">
+          <div class="sourceLicenseTitle" id="sourceLicenseTitle">來源與授權</div>
+          <button type="button" class="sourceLicenseClose" id="sourceLicenseClose" aria-label="關閉">×</button>
+        </div>
+        <div class="sourceLicenseBody">
+          <div class="sourceLicenseBlock">
+            <strong>台版抽卡資料</strong>
+            本工具從 <a href="https://gitlab.com/godfat/battle-cats-rolls" target="_blank" rel="noopener noreferrer">battle-cats-rolls</a> 的 <code>build/bc-tw.yaml</code> 讀取台版活動與卡池資料。
+          </div>
+          <div class="sourceLicenseBlock">
+            <strong>battle-cats-rolls 授權</strong>
+            該專案採用 <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a>。本頁僅標示所使用之外部專案來源與授權，不代表本自訂介面整體採用相同授權。
+          </div>
+          <div class="sourceLicenseBlock">
+            <strong>角色資料連結</strong>
+            表格中的角色資料外部連結會前往 <a href="https://battlecatsinfo.github.io/" target="_blank" rel="noopener noreferrer">Battle Cats Information</a>。
+          </div>
+          <div class="sourceLicenseNote">Battle Cats／にゃんこ大戦争相關名稱、角色與遊戲內容之權利屬其各自權利人。本工具為非官方輔助介面。</div>
+        </div>
+      </div>
+    </div>
 
     <aside class="card panel plannerPanel hidden" id="plannerPanel">
       <div class="panelCompactTitle"><span>角色收集規劃</span><span class="plannerCount" id="plannerSelectedCount">已選 0</span></div>
@@ -736,6 +778,7 @@
   const updateDataBtn = $('updateDataBtn'), dataMeta = $('dataMeta'), calcBtn = $('calcBtn');
   const manualPanel = $('manualPanel');
   const dataSettingsToggle = $('dataSettingsToggle'), dataSettingsContent = $('dataSettingsContent');
+  const sourceLicenseBtn = $('sourceLicenseBtn'), sourceLicenseModal = $('sourceLicenseModal'), sourceLicenseClose = $('sourceLicenseClose');
   const comparePanelsEl = $('comparePanels'), addCompareBtn = $('addCompareBtn');
   const plannerRouteLegendControls = $('plannerRouteLegendControls'), clearPlannerMarksBtn = $('clearPlannerMarksBtn');
   const appGrid = $('appGrid'), settingsToggle = $('settingsToggle');
@@ -2818,12 +2861,25 @@
     calculate();
   }
 
+  function setSourceLicenseOpen(open){
+    if(!sourceLicenseModal) return;
+    sourceLicenseModal.classList.toggle('hidden',!open);
+    document.body.classList.toggle('sourceLicenseOpen',open);
+    if(open){
+      requestAnimationFrame(()=>sourceLicenseClose?.focus());
+    }else{
+      sourceLicenseBtn?.focus();
+    }
+  }
+
   function updateLeftRailVisibility(){
     const anyVisible=!settingsPanel.classList.contains('hidden') || !plannerPanel.classList.contains('hidden');
     leftRail.classList.toggle('hidden',!anyVisible);
     appGrid.classList.toggle('settingsCollapsed',!anyVisible);
   }
   function setSettingsVisible(show){
+    // 設定與收集規劃採互斥面板：開啟設定時，自動關閉收集規劃。
+    if(show && !plannerPanel.classList.contains('hidden')) setPlannerVisible(false);
     settingsPanel.classList.toggle('hidden',!show);
     settingsToggle.setAttribute('aria-expanded',show?'true':'false');
     settingsToggle.querySelector('span').textContent=show?'隱藏設定':'顯示設定';
@@ -2831,6 +2887,8 @@
     updateLeftRailVisibility();
   }
   function setPlannerVisible(show){
+    // 設定與收集規劃採互斥面板：開啟收集規劃時，自動關閉設定。
+    if(show && !settingsPanel.classList.contains('hidden')) setSettingsVisible(false);
     plannerPanel.classList.toggle('hidden',!show);
     plannerToggle.classList.toggle('plannerToggleActive',show);
     plannerToggle.setAttribute('aria-expanded',show?'true':'false');
@@ -2845,10 +2903,16 @@
   document.addEventListener('click',(ev)=>{
     if(!ev.target.closest('.panelEventArea')) closeEventPickers();
   });
-  document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape') closeEventPickers();});
+  document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape'){ closeEventPickers(); if(sourceLicenseModal && !sourceLicenseModal.classList.contains('hidden')) setSourceLicenseOpen(false); }});
   window.addEventListener('resize',()=>{for(const p of panelStates){if(p.eventMenu?.classList.contains('open')) positionEventMenu(p);}});
   try{setSettingsVisible(localStorage.getItem('battle-cats-settings-visible-v1')!=='0');}catch(_){setSettingsVisible(true);}
   try{setPlannerVisible(localStorage.getItem('battle-cats-planner-visible-v1')==='1');}catch(_){setPlannerVisible(false);}
+
+  sourceLicenseBtn?.addEventListener('click',()=>setSourceLicenseOpen(true));
+  sourceLicenseClose?.addEventListener('click',()=>setSourceLicenseOpen(false));
+  sourceLicenseModal?.addEventListener('click',(ev)=>{
+    if(ev.target===sourceLicenseModal) setSourceLicenseOpen(false);
+  });
 
   dataSettingsToggle.addEventListener('click',()=>{
     const open=dataSettingsContent.classList.contains('hidden');
