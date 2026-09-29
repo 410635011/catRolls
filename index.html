@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>🐈 Battle Cats Seed Tracker</title>
+<title>🐈 Battle Cats Seed Tracker v39</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -380,7 +380,7 @@
 
 
   /* v41: source/license dialog */
-  .sourceLicenseModal{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(27,36,44,.38);backdrop-filter:blur(3px)}
+  .sourceLicenseModal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(27,36,44,.38);backdrop-filter:blur(3px)}
   .sourceLicenseModal.hidden{display:none!important}
   .sourceLicenseDialog{width:min(520px,100%);max-height:min(78vh,680px);overflow:auto;background:#fffdf9;border:1px solid #d8dee4;border-radius:16px;box-shadow:0 22px 60px rgba(26,39,52,.22)}
   .sourceLicenseHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #e5e9ed;background:#fafbfc;position:sticky;top:0;z-index:2}
@@ -779,6 +779,8 @@
   const manualPanel = $('manualPanel');
   const dataSettingsToggle = $('dataSettingsToggle'), dataSettingsContent = $('dataSettingsContent');
   const sourceLicenseBtn = $('sourceLicenseBtn'), sourceLicenseModal = $('sourceLicenseModal'), sourceLicenseClose = $('sourceLicenseClose');
+  // Keep the license modal at <body> level so it is not trapped inside the sticky leftRail stacking context.
+  if(sourceLicenseModal && sourceLicenseModal.parentElement !== document.body) document.body.appendChild(sourceLicenseModal);
   const comparePanelsEl = $('comparePanels'), addCompareBtn = $('addCompareBtn');
   const plannerRouteLegendControls = $('plannerRouteLegendControls'), clearPlannerMarksBtn = $('clearPlannerMarksBtn');
   const appGrid = $('appGrid'), settingsToggle = $('settingsToggle');
