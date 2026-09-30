@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>🐈 Battle Cats Seed Tracker v39</title>
+<title>🐈 Battle Cats Seed Tracker v49</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -543,6 +543,40 @@
   .plannerRouteShadowTag{position:absolute!important;z-index:6!important;right:3px;bottom:2px;max-width:calc(100% - 6px);padding:1px 4px;border-radius:4px;background:rgba(255,255,255,.88);color:#718592;border:1px dashed rgba(77,108,128,.42);font-size:8.3px;font-weight:750;line-height:1.15;pointer-events:none;white-space:nowrap}
   .plannerRouteRerollTag{position:absolute!important;z-index:7!important;left:3px;right:3px;bottom:2px;padding:1px 4px;border-radius:4px;background:rgba(255,247,231,.96);color:#8a6422;border:1px solid rgba(170,126,45,.34);font-size:8.5px;font-weight:800;line-height:1.2;text-align:center;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+  /* v42: collection planner manual preselect / waypoint mode */
+  .plannerManualBox{border-color:#cbdbe5;background:#f7fbfd}
+  .plannerManualToggle{display:flex;align-items:center;gap:7px;margin:0!important;font-size:11.8px!important;font-weight:800!important;color:#355f77!important;cursor:pointer}
+  .plannerManualToggle input{margin:0}
+  .plannerManualHint{margin-top:6px;font-size:10.4px;line-height:1.45;color:#748896}
+  .plannerManualControls{display:flex;gap:6px;margin-top:7px}
+  .plannerManualControls button{flex:1;padding:6px 8px;border:1px solid #d4dfe6;border-radius:8px;background:#fff;color:#587083;font-size:10.8px;font-weight:750}
+  .plannerManualControls button:hover:not(:disabled){background:#edf5f8;color:#2f607f;border-color:#bdd1dc}
+  .plannerManualMeta{margin-top:6px;padding:7px 8px;border-radius:8px;background:#fff;border:1px dashed #d6e1e7;color:#718490;font-size:10.5px;line-height:1.45}
+  .plannerManualCollectedHead{font-weight:850;color:#355f77;margin-bottom:4px}
+  .plannerManualCollectedList{display:flex;flex-direction:column;gap:2px}
+  .plannerManualCollectedRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:start}
+  .plannerManualCollectedName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4f6575;font-weight:700}
+  .plannerManualCollectedPos{text-align:right;color:#60798a;font-weight:650;white-space:normal}
+  .plannerManualCollectedPos.missing{color:#a0a8af;font-weight:600}
+  .plannerManualBox.active{background:#edf6fa;border-color:#afc9d8;box-shadow:inset 3px 0 0 #5f8faa}
+  .planner-manual-waypoint{outline:2px solid rgba(89,79,151,.72)!important;outline-offset:-3px!important}
+  .plannerManualWaypointTag{position:absolute!important;z-index:8!important;right:3px;bottom:2px;max-width:calc(100% - 6px);padding:1px 5px;border-radius:4px;background:rgba(242,239,255,.96);color:#5d4f97;border:1px solid rgba(93,79,151,.28);font-size:8.5px;font-weight:850;line-height:1.15;pointer-events:none;white-space:nowrap}
+  /* v44: while manual preselect is active, already-traversed route cells cannot be picked again. */
+  body.plannerManualMode .planner-route-cell[data-pick],
+  body.plannerManualMode .planner-route-no[data-pick],
+  body.plannerManualMode .planner-route-shadow[data-pick],
+  body.plannerManualMode .planner-manual-waypoint[data-pick]{cursor:not-allowed!important}
+  body.plannerManualMode .planner-route-cell[data-pick]:hover,
+  body.plannerManualMode .planner-route-no[data-pick]:hover,
+  body.plannerManualMode .planner-route-shadow[data-pick]:hover,
+  body.plannerManualMode .planner-manual-waypoint[data-pick]:hover{filter:saturate(.82);}
+  /* v46: manual mode pickability. Selected route stays crisp; only unselected positions behind the current progress receive a light dark mask. */
+  body.plannerManualMode [data-pick].planner-manual-disabled{cursor:not-allowed!important;}
+  body.plannerManualMode [data-pick].planner-manual-disabled:hover{cursor:not-allowed!important;}
+  body.plannerManualMode [data-pick].planner-manual-past{position:relative!important;isolation:isolate;}
+  body.plannerManualMode [data-pick].planner-manual-past::after{content:"";position:absolute;inset:0;z-index:7;pointer-events:none;background:rgba(20,26,31,.20);}
+  body.plannerManualMode [data-pick].planner-manual-past>*{position:relative;z-index:2;}
+
 
   /* Seed history: recent seeds stored in Cookie (with localStorage fallback for file:// / blocked-cookie environments) */
   .seedHistorySection{margin-top:-4px}
@@ -586,6 +620,12 @@
   .dataSettingsContent .sourceBox{margin-bottom:12px;background:#fff}
   .plannerElevenDetails{margin-top:7px}
 
+  .plannerDrawSummary{margin-top:10px;font-size:12px;font-weight:800;color:#2f607f;line-height:1.6}
+  .plannerSaveBox{margin-top:10px;padding-top:10px;border-top:1px solid #d7e2eb;display:grid;gap:8px}
+  .plannerSaveBox input{width:100%;min-width:0;font-size:12px;box-sizing:border-box}
+  #plannerSaveStatus{font-size:11px;line-height:1.5;color:#52677b}
+  .savedPlanBadge{color:#2f607f;font-weight:800}
+  .savedPlanNoteInput{width:100%;box-sizing:border-box;font-size:11px;margin-top:5px}
 </style>
 </head>
 <body>
@@ -640,7 +680,7 @@
 
       <div class="section seedHistorySection">
         <div class="seedHistoryHead">
-          <label>最近使用 Seed</label>
+          <label>Seed 與規劃歷史</label>
           <span class="seedHistoryCount" id="seedHistoryCount">0 筆</span>
         </div>
         <div class="seedHistoryList" id="seedHistoryList">
@@ -697,6 +737,18 @@
         <div id="plannerCharacterList" class="plannerCharacterList"><div class="plannerEmpty">載入卡池後會顯示所有可抽角色。</div></div>
       </div>
       <div class="section plannerActionBox">
+        <div class="plannerModeBox plannerManualBox" id="plannerManualBox">
+          <label class="plannerManualToggle"><input id="plannerManualEnabled" type="checkbox"> 預排自選</label>
+
+          <div class="plannerManualControls"><button type="button" id="plannerManualUndo" disabled>退回上一點</button><button type="button" id="plannerManualClear" disabled>清除預排</button></div>
+          <div class="plannerManualMeta" id="plannerManualMeta">尚未選取預排位置。</div>
+          <div class="plannerDrawSummary" id="plannerDrawSummary" aria-live="polite">此次規劃：單抽 0 次 · 11 連抽 0 次</div>
+          <div class="plannerSaveBox">
+            <input id="plannerSaveNote" type="text" maxlength="80" placeholder="此次規劃備註（選填）" aria-label="此次規劃備註" />
+            <button type="button" id="plannerSaveBtn" class="secondary" disabled>保存此次規劃</button>
+            <div id="plannerSaveStatus" role="status" aria-live="polite"></div>
+          </div>
+        </div>
         <div class="plannerModeBox">
           <label for="plannerOptimizationMode">路徑最佳化模式</label>
           <select id="plannerOptimizationMode">
@@ -754,6 +806,9 @@
 (() => {
   'use strict';
 
+  const PLAN_HISTORY_KEY='battle-cats-saved-plans-v1';
+  let activePlannerRoute=[], activePlannerSearch=null;
+  let dataUpdateGeneration=0;
   const U32 = 0x100000000;
   const BASE = 10000;
   const DATA_CACHE_KEY = 'battle-cats-tw-reduced-v5';
@@ -791,6 +846,7 @@
   const plannerOptimizationMode = $('plannerOptimizationMode'), plannerModeHint = $('plannerModeHint');
   const plannerLimitElevenEnabled = $('plannerLimitElevenEnabled'), plannerMaxEleven = $('plannerMaxEleven'), plannerElevenLimitRow = $('plannerElevenLimitRow'), plannerElevenDetails = $('plannerElevenDetails'), plannerOutputPanel = $('plannerOutputPanel');
   const plannerBusy = $('plannerBusy'), plannerBusyText = $('plannerBusyText');
+  const plannerManualBox = $('plannerManualBox'), plannerManualEnabled = $('plannerManualEnabled'), plannerManualUndo = $('plannerManualUndo'), plannerManualClear = $('plannerManualClear'), plannerManualMeta = $('plannerManualMeta');
 
   let battleData = null;
   let visibleEvents = [];
@@ -810,6 +866,8 @@
   let plannerCharacters = [];
   const plannerSelectedIds = new Set();
   let plannerLastSignature = '';
+  const plannerManualPicks = [];
+  let plannerManualLastRoute = [];
 
   const sampleData = `# 示範資料，不是真實卡池\nrates=7000,2500,500,0\nrare=稀有A|稀有B|稀有C|稀有D|稀有E|稀有F\nsuper=激稀有A|激稀有B|激稀有C\nuber=超激稀有A|超激稀有B\nlegend=傳說稀有A`;
 
@@ -918,8 +976,9 @@
     if(!seedHistoryList||!seedHistoryCount) return;
     const items=loadSeedHistory();
     const notes=loadSeedHistoryNotes();
-    seedHistoryCount.textContent=`${items.length} 筆`;
-    if(!items.length){
+    const plans=loadSavedPlans();
+    seedHistoryCount.textContent=`${items.length} Seed · ${plans.length} 規劃`;
+    if(!items.length && !plans.length){
       seedHistoryList.innerHTML='<div class="seedHistoryEmpty">尚無使用紀錄。</div>';
       return;
     }
@@ -947,6 +1006,7 @@
         `</div>`+
       `</div>`;
     }).join('');
+    seedHistoryList.insertAdjacentHTML('afterbegin',plans.map(savedPlanHistoryHtml).join(''));
   }
   function recordSeedHistory(seed,lastCatId=currentLastCatId,source='search'){
     const seedText=String(u32(Number(seed)));
@@ -1176,10 +1236,12 @@
   }
 
   async function updateGitlabData() {
+    const generation=++dataUpdateGeneration;
     updateDataBtn.disabled=true; calcBtn.disabled=true;
     setStatus('<span class="loader"></span>正在從 GitLab 下載並解析台版資料…');
     try {
       const {text,url}=await fetchTextWithFallback();
+      if(generation!==dataUpdateGeneration) return;
       const parsed=parseBattleCatsYaml(text);
       parsed.source=url;
       battleData=parsed;
@@ -1188,6 +1250,7 @@
       renderEventOptions(true);
       setStatus(`GitLab 資料更新完成：${Object.keys(parsed.cats).length} 角色、${Object.keys(parsed.gacha).length} 卡池、${parsed.events.length} 活動。`,'ok');
     } catch (e) {
+      if(generation!==dataUpdateGeneration) return;
       setStatus(`GitLab 更新失敗：${esc(e.message || e)}。${battleData?'目前仍保留本機快取資料。':'你仍可切換到「手動卡池」使用。'}`,'err');
     } finally {
       updateDataBtn.disabled=false; calcBtn.disabled=false;
@@ -2121,12 +2184,307 @@
     if(tableWrap) panel.el.insertBefore(note,tableWrap);
     return note;
   }
-  function clearPlannerTableRoute(){
+  function plannerManualIsEnabled(){ return !!plannerManualEnabled?.checked; }
+  function plannerManualCollectedLocations(route){
+    const selectedIds=new Set([...plannerSelectedIds].map(String));
+    const rows=new Map();
+    for(const cat of plannerCharacters){
+      const id=String(cat?.id??'');
+      if(selectedIds.has(id)) rows.set(id,{cat,locations:[]});
+    }
+    if(!route?.length || !rows.size) return rows;
+    const maxDraws=clampInt(futureInput.value,1,1000,'未來位數');
+    const positionMap=plannerSeedPositionMap(readSeed(),maxDraws);
+    const addLocation=(cat,panelIndex,label)=>{
+      const id=String(cat?.id??'');
+      const row=rows.get(id); if(!row||!label||label==='範圍外') return;
+      const text=`表${panelIndex} ${label}`;
+      if(!row.locations.includes(text)) row.locations.push(text);
+    };
+    for(const action of route){
+      const panelIndex=action.entry?.panel?.index;
+      if(panelIndex==null) continue;
+      const startMarker=plannerSeedPositionLabel(action.startSeed,positionMap);
+      const regularCount=action.type==='guaranteed'?Math.max(0,(action.rolls||action.drawCost||0)-1):1;
+      let seedCursor=u32(action.startSeed);
+      for(let i=0;i<regularCount;i++){
+        const marker=plannerSeedPositionLabel(seedCursor,positionMap);
+        const cat=action.acquired?.[i] || (i===0?action.result:null);
+        addLocation(cat,panelIndex,marker);
+        if(cat?.slotSeed!=null) seedCursor=u32(cat.slotSeed);
+      }
+      if(action.type==='guaranteed'){
+        const cat=action.acquired?.[(action.acquired?.length||1)-1];
+        addLocation(cat,panelIndex,startMarker==='範圍外'?startMarker:`${startMarker} 保底`);
+      }
+    }
+    return rows;
+  }
+  function plannerManualRenderCollectedMeta(){
+    if(!plannerManualMeta) return;
+    const rows=plannerManualCollectedLocations(plannerManualLastRoute);
+    const total=rows.size;
+    const collected=[...rows.values()].filter(r=>r.locations.length).length;
+    const targets=plannerCharacters.filter(c=>plannerSelectedIds.has(String(c.id)));
+    const npStats=plannerRouteNpStats(plannerManualLastRoute,targets);
+    plannerManualMeta.innerHTML='';
+    const head=document.createElement('div');
+    head.className='plannerManualCollectedHead';
+    head.textContent=`角色已收集: ${collected}/${total} · 總 NP: ${npStats.total}`;
+    plannerManualMeta.appendChild(head);
+    if(!total) return;
+    const list=document.createElement('div');
+    list.className='plannerManualCollectedList';
+    for(const {cat,locations} of rows.values()){
+      const row=document.createElement('div'); row.className='plannerManualCollectedRow';
+      const name=document.createElement('span'); name.className='plannerManualCollectedName'; name.textContent=cat?.name||String(cat?.id??'');
+      const pos=document.createElement('span'); pos.className='plannerManualCollectedPos'+(locations.length?'':' missing'); pos.textContent=locations.length?locations.join('、'):'未取得';
+      row.append(name,pos); list.appendChild(row);
+    }
+    plannerManualMeta.appendChild(list);
+  }
+  function plannerManualUpdateUi(){
+    const enabled=plannerManualIsEnabled();
+    plannerManualBox?.classList.toggle('active',enabled);
+    document.body.classList.toggle('plannerManualMode',enabled);
+    if(plannerManualUndo) plannerManualUndo.disabled=!plannerManualPicks.length;
+    if(plannerManualClear) plannerManualClear.disabled=!plannerManualPicks.length;
+    if(plannerManualMeta){
+      if(plannerManualPicks.length){
+        plannerManualRenderCollectedMeta();
+      }else if(!enabled){
+        plannerManualMeta.textContent='尚未選取預排位置。';
+      }else{
+        plannerManualMeta.textContent='預排模式已開啟：請直接點選抽選表上的位置。';
+      }
+    }
+    plannerManualRefreshPickability();
+  }
+  function plannerManualClearAll(message='已清除預排自選。'){
+    plannerManualPicks.splice(0);
+    plannerManualLastRoute=[];
+    clearPlannerTableRoute();
+    plannerResult.innerHTML='';
+    updatePlannerOutputVisibility();
+    plannerManualUpdateUi();
+    if(message) setPlannerStatus(message,'');
+  }
+  function plannerManualPanelEntry(panelIndex){
+    return plannerPoolEntries().find(e=>Number(e.panel?.index)===Number(panelIndex)) || null;
+  }
+  function plannerMarkerOffset(marker){
+    const m=String(marker||'').match(/^(\d+)([AB])$/); if(!m) return null;
+    const pos=Number(m[1]); if(!Number.isInteger(pos)||pos<1) return null;
+    return (pos-1)*2+(m[2]==='B'?1:0);
+  }
+  function plannerManualRefreshPickability(routeInfo=null){
     for(const panel of panelStates){
-      panel.resultBody?.querySelectorAll('.planner-route-cell,.planner-route-no,.planner-route-shadow').forEach(el=>{
-        el.classList.remove('planner-route-cell','planner-route-no','planner-route-shadow','route-target','route-guaranteed');
+      panel.resultBody?.querySelectorAll('[data-pick].planner-manual-disabled,[data-pick].planner-manual-past').forEach(el=>{
+        el.classList.remove('planner-manual-disabled','planner-manual-past');
       });
-      panel.resultBody?.querySelectorAll('.plannerRouteBadge,.plannerRouteTargetTag,.plannerRouteActionTag,.plannerRouteShadowTag,.plannerRouteRerollTag').forEach(el=>el.remove());
+    }
+    if(!plannerManualIsEnabled() || !plannerManualPicks.length) return;
+    let built=routeInfo;
+    if(!built){ try{ built=plannerManualBuildRoute(); }catch(_){ built=null; } }
+    let currentOffset=null;
+    if(built?.endSeed!=null){
+      const positionMap=plannerSeedPositionMap(built.startSeed,built.maxDraws);
+      const currentMarker=plannerSeedPositionLabel(built.endSeed,positionMap);
+      currentOffset=plannerMarkerOffset(currentMarker);
+    }
+    for(const panel of panelStates){
+      panel.resultBody?.querySelectorAll('[data-pick]').forEach(el=>{
+        const parsed=parseMarker(el.dataset.pick);
+        if(!parsed||parsed.position<=0) return;
+        const base=`${parsed.position}${parsed.track===0?'A':'B'}`;
+        const offset=plannerMarkerOffset(base);
+        const alreadyUsed=el.classList.contains('planner-route-cell') || el.classList.contains('planner-route-no') || el.classList.contains('planner-route-shadow') || el.classList.contains('planner-manual-waypoint');
+        const earlier=currentOffset!=null && offset!=null && offset<currentOffset;
+        if(alreadyUsed || earlier) el.classList.add('planner-manual-disabled');
+        // Do not dim the selected / traversed route itself. Only dim older positions that are not part of the chosen route.
+        if(earlier && !alreadyUsed) el.classList.add('planner-manual-past');
+      });
+    }
+  }
+  function plannerManualDecorateHits(route){
+    const targetIndex=new Map([...plannerSelectedIds].map(id=>[String(id),true]));
+    const found=new Set();
+    for(const action of route){
+      const hits=[];
+      (action.acquired||[]).forEach((cat,i)=>{
+        const id=String(cat?.id??'');
+        if(!targetIndex.has(id)||found.has(id)) return;
+        found.add(id);
+        hits.push({cat,offset:i+1,isGuaranteed:action.type==='guaranteed'&&i===(action.acquired.length-1)});
+      });
+      action.hits=hits;
+    }
+    return found;
+  }
+  function plannerManualBuildRoute(){
+    if(!plannerManualPicks.length) return {route:[],startSeed:readSeed(),startLast:currentLastCatId,maxDraws:clampInt(futureInput.value,1,1000,'未來位數')};
+    const startSeed=readSeed(), startLast=currentLastCatId==null?null:String(currentLastCatId);
+    const maxDraws=clampInt(futureInput.value,1,1000,'未來位數');
+    const positionMap=plannerSeedPositionMap(startSeed,maxDraws);
+    let seed=u32(startSeed), lastId=startLast, used=0;
+    const route=[];
+    for(let pickIndex=0;pickIndex<plannerManualPicks.length;pickIndex++){
+      const pick=plannerManualPicks[pickIndex];
+      const entry=plannerManualPanelEntry(pick.panelIndex);
+      if(!entry) throw new Error(`預排第 ${pickIndex+1} 點的表${pick.panelIndex}已不存在。`);
+      const parsed=parseMarker(pick.marker);
+      if(!parsed||parsed.position<=0) throw new Error(`預排第 ${pickIndex+1} 點不是可用的未來抽位。`);
+      const targetMarker=`${parsed.position}${parsed.track===0?'A':'B'}`;
+      const targetOffset=plannerMarkerOffset(targetMarker);
+      let reached=false;
+      while(used<maxDraws){
+        const currentMarker=plannerSeedPositionLabel(seed,positionMap);
+        if(currentMarker===targetMarker){ reached=true; break; }
+        const currentOffset=plannerMarkerOffset(currentMarker);
+        if(currentOffset!=null && targetOffset!=null && currentOffset>targetOffset) break;
+        const action=simulatePlannerSingle(seed,lastId,entry);
+        if(!action) break;
+        action.manualIntermediate=true;
+        action.manualSegment=pickIndex+1;
+        route.push(action);
+        seed=action.nextSeed; lastId=action.nextLastId; used+=action.drawCost;
+      }
+      if(!reached) throw new Error(`無法從上一個節點串到第 ${pickIndex+1} 點（表${pick.panelIndex} ${targetMarker}）；實際軌道可能已跨過該位置。`);
+      let action;
+      if(parsed.guaranteed){
+        action=simulatePlannerGuaranteed(seed,lastId,entry);
+        if(!action) throw new Error(`表${pick.panelIndex} ${targetMarker} 目前沒有可用的保底／Step-up 路徑。`);
+      }else{
+        action=simulatePlannerSingle(seed,lastId,entry);
+        if(!action) throw new Error(`無法計算表${pick.panelIndex} ${targetMarker} 的單抽。`);
+      }
+      if(used+action.drawCost>maxDraws) throw new Error(`預排路徑超出目前「未來位數」${maxDraws} 抽。`);
+      action.manualWaypoint=true;
+      action.manualWaypointIndex=pickIndex+1;
+      action.manualMarker=targetMarker;
+      route.push(action);
+      seed=action.nextSeed; lastId=action.nextLastId; used+=action.drawCost;
+    }
+    plannerManualDecorateHits(route);
+    return {route,startSeed,startLast,maxDraws,used,endSeed:seed,endLast:lastId};
+  }
+  function plannerAddManualWaypointTag(cell,index){
+    if(!cell) return;
+    cell.classList.add('planner-manual-waypoint');
+    const old=cell.querySelector('.plannerManualWaypointTag'); if(old) old.remove();
+    const tag=document.createElement('span'); tag.className='plannerManualWaypointTag'; tag.textContent=`自選 ${index}`; cell.appendChild(tag);
+  }
+  function plannerManualEnsureSingleLabels(route,startSeed,maxDraws){
+    if(!route?.length) return;
+    const positionMap=plannerSeedPositionMap(startSeed,maxDraws);
+    for(const action of route){
+      if(action.type!=='single') continue;
+      const panel=action.entry?.panel; if(!panel) continue;
+      const marker=plannerSeedPositionLabel(action.startSeed,positionMap);
+      const cell=plannerRouteCell(panel,marker,false); if(!cell) continue;
+      const existing=cell.querySelector('.plannerRouteActionTag');
+      const wanted=action.manualWaypoint?`自選 ${action.manualWaypointIndex} · 單抽`:'單抽';
+      if(existing) existing.textContent=wanted;
+      else plannerAddRouteAction(cell,wanted);
+    }
+  }
+  function renderPlannerManualPreselect(){
+    clearPlannerTableRoute();
+    if(!plannerManualPicks.length){ plannerManualLastRoute=[]; plannerResult.innerHTML=''; updatePlannerOutputVisibility(); plannerManualUpdateUi(); return; }
+    try{
+      const built=plannerManualBuildRoute();
+      plannerManualLastRoute=built.route;
+      const fakeSearch={startSeed:built.startSeed,startLast:built.startLast,mode:'manual'};
+      const display=renderPlannerRouteOnTables(built.route,fakeSearch,built.maxDraws);
+      // Manual mode must show every actual single draw between waypoints, not only the clicked endpoint.
+      plannerManualEnsureSingleLabels(built.route,built.startSeed,built.maxDraws);
+      for(const pick of plannerManualPicks){
+        const panel=panelStates.find(p=>Number(p.index)===Number(pick.panelIndex));
+        const parsed=parseMarker(pick.marker); if(!panel||!parsed) continue;
+        const marker=`${parsed.position}${parsed.track===0?'A':'B'}`;
+        const cell=plannerRouteCell(panel,marker,parsed.guaranteed);
+        plannerAddManualWaypointTag(cell,plannerManualPicks.indexOf(pick)+1);
+      }
+      const hitIds=new Set();
+      for(const a of built.route) for(const h of a.hits||[]) hitIds.add(String(h.cat?.id??''));
+      const selected=[...plannerSelectedIds];
+      const hitNames=plannerCharacters.filter(c=>hitIds.has(String(c.id))).map(c=>c.name);
+      const missingNames=plannerCharacters.filter(c=>selected.includes(String(c.id))&&!hitIds.has(String(c.id))).map(c=>c.name);
+      const manualTargets=plannerCharacters.filter(c=>plannerSelectedIds.has(String(c.id)));
+      const npStats=plannerRouteNpStats(built.route,manualTargets);
+      plannerResult.innerHTML=`<div data-planner-route-ready="1">預排自選 · ${built.used} 抽 · ${plannerManualPicks.length} 個節點 · 總 NP ${npStats.total}</div>`;
+      updatePlannerOutputVisibility();
+      let msg=`預排自選已串聯 ${plannerManualPicks.length} 個節點，共 ${built.used} 抽；中間抽位已自動補齊並標記為單抽。總 NP ${npStats.total}。`;
+      if(hitNames.length) msg+=` 路徑命中目標：${hitNames.join('、')}。`;
+      if(missingNames.length) msg+=` 尚未命中：${missingNames.join('、')}。`;
+      if(display.outOfRange) msg+=` 另有 ${display.outOfRange} 個路徑格超出目前顯示範圍。`;
+      setPlannerStatus(msg,'ok');
+      plannerManualRefreshPickability(built);
+      activePlannerRoute=built.route; activePlannerSearch=null; updatePlannerDrawSummary();
+    }catch(e){
+      plannerManualLastRoute=[];
+      clearPlannerTableRoute();
+      plannerResult.innerHTML=''; updatePlannerOutputVisibility();
+      setPlannerStatus(e.message||String(e),'err');
+    }
+    plannerManualUpdateUi();
+  }
+  function plannerManualMarkerAlreadyUsed(marker){
+    const parsed=parseMarker(marker); if(!parsed||parsed.position<=0) return false;
+    const base=`${parsed.position}${parsed.track===0?'A':'B'}`;
+    for(const p of panelStates){
+      const cells=p.resultBody?.querySelectorAll(`[data-pick="${base}"],[data-pick="${base}G"]`);
+      if(!cells) continue;
+      for(const cell of cells){
+        if(cell.classList.contains('planner-route-cell') ||
+           cell.classList.contains('planner-route-no') ||
+           cell.classList.contains('planner-route-shadow') ||
+           cell.classList.contains('planner-manual-waypoint')) return true;
+      }
+    }
+    return false;
+  }
+  function plannerManualAddPick(panel,marker){
+    const parsed=parseMarker(marker); if(!parsed||parsed.position<=0) return false;
+    const normalized=`${parsed.position}${parsed.track===0?'A':'B'}${parsed.guaranteed?'G':''}`;
+    const baseMarker=`${parsed.position}${parsed.track===0?'A':'B'}`;
+    const clickedCell=panel?.resultBody?.querySelector(`[data-pick="${normalized}"]`) || panel?.resultBody?.querySelector(`[data-pick="${baseMarker}"]`);
+    if(clickedCell?.classList.contains('planner-manual-disabled')){
+      setPlannerStatus(`表${panel.index} ${normalized} 位於已選取路徑或目前進度之前，重置／退回預排前不能再次選取。`,'warn');
+      return false;
+    }
+    if(plannerManualPicks.length && plannerManualMarkerAlreadyUsed(baseMarker)){
+      setPlannerStatus(`表${panel.index} ${normalized} 已位於目前預排路徑中，重置／退回預排前不能再次選取。`,'warn');
+      return false;
+    }
+    const last=plannerManualPicks[plannerManualPicks.length-1];
+    if(last && Number(last.panelIndex)===Number(panel.index) && last.marker===normalized){
+      setPlannerStatus(`表${panel.index} ${normalized} 已是目前最後一個預排節點。`,'warn');
+      return false;
+    }
+
+    // Transactional validation: never destroy the current rendered route when an invalid point is clicked.
+    plannerManualPicks.push({panelIndex:panel.index,marker:normalized});
+    try{
+      plannerManualBuildRoute();
+    }catch(e){
+      plannerManualPicks.pop();
+      setPlannerStatus(e.message||String(e),'warn');
+      plannerManualUpdateUi();
+      return false;
+    }
+    renderPlannerManualPreselect();
+    return true;
+  }
+
+  function clearPlannerTableRoute(){
+    activePlannerRoute=[]; activePlannerSearch=null; updatePlannerDrawSummary();
+    for(const panel of panelStates){
+      // Clear every planner visual state, including disabled / past cells that are not part of the rendered route.
+      panel.resultBody?.querySelectorAll('.planner-route-cell,.planner-route-no,.planner-route-shadow,.planner-manual-waypoint,.planner-manual-disabled,.planner-manual-past').forEach(el=>{
+        el.classList.remove('planner-route-cell','planner-route-no','planner-route-shadow','planner-manual-waypoint','planner-manual-disabled','planner-manual-past','route-target','route-guaranteed');
+      });
+      panel.resultBody?.querySelectorAll('.plannerRouteBadge,.plannerRouteTargetTag,.plannerRouteActionTag,.plannerRouteShadowTag,.plannerRouteRerollTag,.plannerManualWaypointTag').forEach(el=>el.remove());
       const note=panel.el?.querySelector('.plannerTableRouteNote');
       if(note){ note.classList.remove('active'); note.innerHTML=''; }
     }
@@ -2207,7 +2565,9 @@
           plannerAddRouteBadge(cell,drawNo);
           if(i===0){
             const npTag=search.mode==='npMax'?` · NP +${action.npGain||0}`:'';
-            plannerAddRouteAction(cell,action.type==='single'?`步驟 ${actionIndex+1} · 單抽${npTag}`:`步驟 ${actionIndex+1} · ${action.rolls===11?'11連':'Step-up'}${npTag}`);
+            if(action.manualWaypoint) plannerAddRouteAction(cell,`自選 ${action.manualWaypointIndex}${action.type==='single'?' · 單抽':` · ${action.rolls===11?'11連':'Step-up'}`}`);
+            else if(action.manualIntermediate) plannerAddRouteAction(cell,'單抽');
+            else plannerAddRouteAction(cell,action.type==='single'?`步驟 ${actionIndex+1} · 單抽${npTag}`:`步驟 ${actionIndex+1} · ${action.rolls===11?'11連':'Step-up'}${npTag}`);
           }
           // 單抽遇到 Rare 重複時，表格主格顯示的是「原始候選」，不是實際取得角色。
           // 路徑判定一律以 action.acquired 的實得角色為準，並清楚標出換軌後的下一抽位置，避免把原始格誤認成已蒐集。
@@ -2232,7 +2592,7 @@
         if(gCell){
           gCell.classList.add('planner-route-cell','route-guaranteed');
           plannerAddRouteBadge(gCell,drawNo);
-          plannerAddRouteAction(gCell,`${action.rolls===11?'11連':'Step-up'}保底`);
+          plannerAddRouteAction(gCell,action.manualWaypoint?`自選 ${action.manualWaypointIndex} · ${action.rolls===11?'11連':'Step-up'}保底`:`${action.rolls===11?'11連':'Step-up'}保底`);
           if(targetName){ plannerAddRouteTarget(gCell,targetName); meta.targets++; }
           marked++;
         }else outOfRange++;
@@ -2262,19 +2622,22 @@
     const npStats=plannerRouteNpStats(route,targets);
     const routeDisplay=renderPlannerRouteOnTables(route,search,maxDraws);
     if(search.found){
-      if(search.mode==='saveUber') setPlannerStatus(`已把完整收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集，錯過 ${stats.missedCount} 隻未勾選 Uber Rare。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
+      if(search.mode==='saveUber') setPlannerStatus(`已把完整收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集，錯過 ${stats.missedCount} 隻未勾選 Uber Rare；總 NP ${npStats.total}。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
       else if(search.mode==='npMax'){
         const shortest=Number.isFinite(search.shortestCost)?search.shortestCost:search.node.cost;
         const cap=Number.isFinite(search.npMaxCost)?search.npMaxCost:search.node.cost;
         const proof=search.optimal?'已完成限定範圍搜尋，這是範圍內最高 NP 解':`快速搜尋已達 ${NP_FAST_MAX_STATES.toLocaleString()} 個狀態，顯示目前找到的最佳 NP 路徑`;
         setPlannerStatus(`${proof}：最短 ${shortest} 抽，NP 搜尋上限 ${cap} 抽；目前路徑共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集，可累積 NP ${npStats.total}（傳說 ${npStats.byRarity.legend}、超激 ${npStats.byRarity.uber}、激稀有 ${npStats.byRarity.super}、稀有 ${npStats.byRarity.rare} 隻可轉換）。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,search.optimal?'ok':'warn');
-      } else setPlannerStatus(`已把最短收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集；單抽 ${stats.singleCount} 次、11 連 ${stats.elevenCount} 次。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
-    } else if(search.limitHit) setPlannerStatus(`搜尋達安全上限 ${search.expanded.toLocaleString()} 個狀態；目前部分路徑已畫在對應表格，只收集 ${search.node.collected}/${targets.length} 個目標，這不是最佳解。`,'warn');
-    else setPlannerStatus(`在 ${maxDraws} 抽內找不到全部目標；目前最佳部分路徑已畫在對應表格，可收集 ${search.node.collected}/${targets.length} 個。`,'warn');
+      } else setPlannerStatus(`已把最短收集路徑畫在上方對應卡池表格：共 ${search.node.cost} 抽，全部 ${targets.length} 個目標已蒐集；單抽 ${stats.singleCount} 次、11 連 ${stats.elevenCount} 次；總 NP ${npStats.total}。${routeDisplay.outOfRange?`另有 ${routeDisplay.outOfRange} 個路徑格超出目前表格顯示範圍。`:''}`,'ok');
+    } else if(search.limitHit) setPlannerStatus(`搜尋達安全上限 ${search.expanded.toLocaleString()} 個狀態；目前部分路徑已畫在對應表格，只收集 ${search.node.collected}/${targets.length} 個目標，總 NP ${npStats.total}；這不是最佳解。`,'warn');
+    else setPlannerStatus(`在 ${maxDraws} 抽內找不到全部目標；目前最佳部分路徑已畫在對應表格，可收集 ${search.node.collected}/${targets.length} 個，總 NP ${npStats.total}。`,'warn');
 
     // Keep a compact machine-readable summary in the hidden result container so existing visibility/state logic stays intact.
-    plannerResult.innerHTML=`<div data-planner-route-ready="1">${search.found?'完整路徑':'部分路徑'} · ${search.node.cost} 抽 · ${route.length} 個操作${search.mode==='npMax'?` · NP ${npStats.total}`:''}${missing.length?` · 尚缺 ${missing.map(x=>esc(x.name)).join('、')}`:''}</div>`;
+    plannerResult.innerHTML=`<div data-planner-route-ready="1">${search.found?'完整路徑':'部分路徑'} · ${search.node.cost} 抽 · ${route.length} 個操作 · 總 NP ${npStats.total}${missing.length?` · 尚缺 ${missing.map(x=>esc(x.name)).join('、')}`:''}</div>`;
     updatePlannerOutputVisibility();
+    activePlannerRoute=route;
+    activePlannerSearch={found:search.found,mode:search.mode,limitHit:search.limitHit,expanded:search.expanded,optimal:search.optimal,shortestCost:search.shortestCost,npMaxCost:search.npMaxCost};
+    updatePlannerDrawSummary();
   }
   function updatePlannerModeHint(){
     const mode=plannerOptimizationModeValue();
@@ -2282,7 +2645,21 @@
     else if(mode==='npMax') plannerModeHint.textContent=`先快速算出最短抽齊路徑，再把 NP 搜尋距離限制在最短 +${NP_EXTRA_DRAW_LIMIT} 抽以內；完成所有指定角色後不再繼續抽。這能大幅縮小 500 抽等大範圍設定的搜尋量。`;
     else plannerModeHint.textContent='所有勾選角色都必須收集；使用 A* 搜尋最少總抽數。Legend Rare 會優先引導搜尋，但不改變「最短抽齊」的最佳解判定。';
   }
+  function plannerCancelManualForAuto(){
+    if(!plannerManualIsEnabled() && !plannerManualPicks.length) return;
+    if(plannerManualEnabled) plannerManualEnabled.checked=false;
+    plannerManualPicks.splice(0);
+    plannerManualLastRoute=[];
+    document.body.classList.remove('plannerManualMode');
+    plannerManualBox?.classList.remove('active');
+    plannerManualUpdateUi();
+  }
   async function calculatePlannerRoute(){
+    // Auto planner and manual preselect are mutually exclusive. Starting an auto calculation cancels manual preselect completely.
+    plannerCancelManualForAuto();
+    clearPlannerTableRoute();
+    plannerResult.innerHTML='';
+    updatePlannerOutputVisibility();
     plannerHasSearched=true;
     plannerStatus.classList.remove('hidden');
     try{
@@ -2650,8 +3027,10 @@
     const pickClass=pick?' pickable':'';
     return `<div class="gridCell ${classes}${pickClass}" style="grid-column:${col};grid-row:${row}/span ${span}"${attr}>${html}</div>`;
   }
+  let activePathHighlightMarker='';
   function clearPathHighlight(){
     resultBody.querySelectorAll('.path-picked,.path-consecutive,.path-next').forEach(el=>el.classList.remove('path-picked','path-consecutive','path-next'));
+    activePathHighlightMarker='';
   }
   function parseMarker(marker){
     const m=String(marker||'').match(/^(-?\d+)([AB])(R)?(G)?$/);
@@ -2744,7 +3123,14 @@
   }
   function highlightMarker(marker){
     const parsed=parseMarker(marker); if(!parsed)return;
+    // Clicking the same interactive route cell again toggles the gray path preview off.
+    const hasVisibleHighlight=!!resultBody.querySelector('.path-picked,.path-consecutive,.path-next');
+    if(activePathHighlightMarker===marker && hasVisibleHighlight){
+      clearPathHighlight();
+      return;
+    }
     if(parsed.guaranteed)highlightGuaranteed(marker); else highlightSingle(marker);
+    activePathHighlightMarker=marker;
   }
   function markCurrentNextPosition(){
     clearPathHighlight();
@@ -2841,12 +3227,27 @@
     if(roll){
       e.preventDefault();
       e.stopPropagation();
+      if(plannerManualIsEnabled()){
+        // In manual preselect mode a character name behaves like clicking its table cell;
+        // seed jumping is intentionally suspended until the mode is turned off.
+        const pick=roll.closest('[data-pick]');
+        if(pick && panel.resultBody.contains(pick)){
+          if(pick.classList.contains('planner-manual-disabled')){ setPlannerStatus('這個位置已經走過或位於目前進度之前，重置／退回預排前不能再選。','warn'); return; }
+          plannerManualAddPick(panel,pick.dataset.pick);
+        }
+        return;
+      }
       switchToRoll(panel,roll.dataset.rollSeed,roll.dataset.rollLast,roll.textContent.trim());
       return;
     }
     const pick=e.target.closest('[data-pick]');
     if(pick && panel.resultBody.contains(pick)){
       e.preventDefault();
+      if(plannerManualIsEnabled()){
+        if(pick.classList.contains('planner-manual-disabled')){ setPlannerStatus('這個位置已經走過或位於目前進度之前，重置／退回預排前不能再選。','warn'); return; }
+        plannerManualAddPick(panel,pick.dataset.pick);
+        return;
+      }
       highlightMarker(pick.dataset.pick);
     }
   }
@@ -3004,6 +3405,30 @@
   pastInput.addEventListener('change',()=>{saveRangePrefs();calculate();});
   futureInput.addEventListener('change',()=>{saveRangePrefs();plannerSearchLimit.textContent=`最多 ${String(futureInput.value||'?')} 抽`;calculate();});
 
+  plannerManualEnabled.addEventListener('change',()=>{
+    if(plannerManualIsEnabled()){
+      // Manual preselect and automatic calculation are mutually exclusive. Enabling manual mode immediately clears the auto-calculated route.
+      clearPlannerTableRoute();
+      plannerResult.innerHTML='';
+      plannerHasSearched=false;
+      updatePlannerOutputVisibility();
+    }
+    plannerManualUpdateUi();
+    if(plannerManualIsEnabled()){
+      if(plannerManualPicks.length) renderPlannerManualPreselect();
+      else setPlannerStatus('預排自選已開啟：自動計算結果已取消，請直接點選抽選表上的 A／B／保底位置。','');
+    }else if(plannerManualPicks.length){
+      setPlannerStatus('預排自選已暫停；節點仍保留，重新開啟可繼續。','');
+    }
+  });
+  plannerManualUndo.addEventListener('click',()=>{
+    if(!plannerManualPicks.length) return;
+    plannerManualPicks.pop();
+    renderPlannerManualPreselect();
+    if(!plannerManualPicks.length) setPlannerStatus('已退回全部預排節點；可重新點選。','');
+  });
+  plannerManualClear.addEventListener('click',()=>plannerManualClearAll());
+
   plannerOptimizationMode.addEventListener('change',()=>{updatePlannerModeHint();invalidatePlannerResult('最佳化模式已變更，請重新計算。');});
   plannerLimitElevenEnabled.addEventListener('change',()=>{syncPlannerElevenLimitUi();savePlannerPrefs();invalidatePlannerResult('11 連次數限制已變更，請重新計算。');});
   plannerMaxEleven.addEventListener('change',()=>{
@@ -3014,15 +3439,130 @@
     const cb=e.target.closest('.plannerTargetCheck'); if(!cb) return;
     const id=String(cb.dataset.targetId||'');
     if(cb.checked) plannerSelectedIds.add(id); else plannerSelectedIds.delete(id);
-    renderPlannerCharacterList(); invalidatePlannerResult();
+    renderPlannerCharacterList();
+    if(plannerManualIsEnabled() && plannerManualPicks.length) renderPlannerManualPreselect();
+    else invalidatePlannerResult();
   });
-  plannerClearBtn.addEventListener('click',()=>{plannerSelectedIds.clear();renderPlannerCharacterList();invalidatePlannerResult();});
+  plannerClearBtn.addEventListener('click',()=>{plannerSelectedIds.clear();renderPlannerCharacterList();if(plannerManualIsEnabled()&&plannerManualPicks.length)renderPlannerManualPreselect();else invalidatePlannerResult();});
   plannerCalcBtn.addEventListener('click',calculatePlannerRoute);
   clearPlannerMarksBtn.addEventListener('click',()=>{
+    // 預排自選模式：右上「解除蒐集規劃標示」與左側「清除預排」完全相同。
+    // 會一併清除預排節點、路徑、遮罩與統計，但保留已勾選的目標角色。
+    if(plannerManualIsEnabled()){
+      plannerManualClearAll();
+      return;
+    }
+    // 原本自動計算模式維持既有行為：只移除表格上的規劃標示，不清除計算設定／目標角色。
     clearPlannerTableRoute();
     setPlannerStatus('已解除表格上的蒐集規劃標示；勾選角色與規劃設定仍保留。','');
   });
 
+
+  function updatePlannerDrawSummary(){
+    const route=activePlannerRoute;
+    const single=route.filter(a=>a.type==='single').length;
+    const eleven=route.filter(a=>a.type==='guaranteed'&&a.rolls===11).length;
+    const step=route.filter(a=>a.type==='guaranteed'&&a.rolls!==11).length;
+    const total=route.reduce((n,a)=>n+a.drawCost,0);
+    $('plannerDrawSummary').textContent=`此次規劃：單抽 ${single} 次 · 11 連抽 ${eleven} 次${step?` · Step-up ${step} 次`:''} · 共 ${total} 抽`;
+    $('plannerSaveBtn').disabled=!route.length;
+  }
+  function loadSavedPlans(){
+    try{const data=JSON.parse(storageGet(PLAN_HISTORY_KEY)||'[]');return Array.isArray(data)?data.filter(p=>p?.version===1&&p.id&&p.snapshot):[];}catch(_){return [];}
+  }
+  function savePlanRecords(plans){
+    if(!storageSet(PLAN_HISTORY_KEY,JSON.stringify(plans))) throw new Error('無法保存：瀏覽器儲存空間不足或已停用。請先刪除不需要的規劃再試一次。');
+  }
+  function savedPlanHistoryHtml(p){
+    return `<div class="seedHistoryItem"><button type="button" class="seedHistoryUse" data-plan-restore="${esc(p.id)}" title="還原卡池表與規劃"><span class="seedHistorySeed">${esc(p.snapshot.seed)} <span class="savedPlanBadge">· 已保存規劃</span></span><span class="seedHistoryMeta">${esc(formatSeedHistoryTime(p.savedAt))}</span><span class="seedHistoryNotePreview">${esc(p.summary)}</span>${p.note?`<span class="seedHistoryNotePreview">備註：${esc(p.note)}</span>`:''}</button><div class="seedHistoryActions"><button type="button" class="seedHistoryNoteToggle" data-plan-edit="${esc(p.id)}" aria-label="編輯規劃備註">✎</button><button type="button" class="seedHistoryDelete" data-plan-delete="${esc(p.id)}" aria-label="刪除保存規劃">×</button></div><div class="seedHistoryNoteEditor hidden" data-plan-editor="${esc(p.id)}"><input class="savedPlanNoteInput" maxlength="80" value="${esc(p.note||'')}" aria-label="規劃備註"><button type="button" class="seedHistoryNoteSave" data-plan-note-save="${esc(p.id)}">儲存備註</button></div></div>`;
+  }
+  function snapshotPlanData(){
+    if(currentMode()!=='gitlab') return null;
+    const events=panelStates.map(p=>getSelectedEventForPanel(p));
+    if(events.some(e=>!e)) throw new Error('卡池尚未載入，無法保存。');
+    const gacha={},cats={};
+    for(const e of events){const pool=battleData.gacha[e.id];gacha[e.id]=pool;for(const id of pool.cats) if(battleData.cats[id]) cats[id]=battleData.cats[id];}
+    return {...battleData,cats,gacha,events};
+  }
+  function saveCurrentPlan(){
+    try{
+      if(!activePlannerRoute.length) throw new Error('請先建立規劃路徑。');
+      if(panelStates.some(p=>p.seed!==readSeed())) throw new Error('Seed 已變更，請重新推算並規劃後再保存。');
+      const snapshot={seed:readSeed(),lastCatId:currentLastCatId,past:Number(pastInput.value),future:Number(futureInput.value),dataMode:currentMode(),manualPool:poolInput.value,battleData:snapshotPlanData(),eventKeys:panelStates.map(p=>p.eventSelect.value),selectedIds:[...plannerSelectedIds],manualEnabled:plannerManualIsEnabled(),manualPicks:plannerManualPicks.map(p=>({...p})),optimizationMode:plannerOptimizationMode.value,limitEnabled:plannerLimitElevenEnabled.checked,maxEleven:Number(plannerMaxEleven.value),search:activePlannerSearch,actions:activePlannerRoute.map(a=>({panelIndex:a.entry.panel.index,type:a.type,ids:a.acquired.map(c=>String(c.id)),nextSeed:a.nextSeed})),settingsVisible:!settingsPanel.classList.contains('hidden'),plannerVisible:!plannerPanel.classList.contains('hidden'),tableScroll:panelStates.map(p=>({top:p.tableWrap.scrollTop,left:p.tableWrap.scrollLeft}))};
+      const plan={version:1,id:`${Date.now()}-${Math.random().toString(36).slice(2)}`,savedAt:Date.now(),note:$('plannerSaveNote').value.trim().slice(0,80),summary:$('plannerDrawSummary').textContent,snapshot};
+      const plans=loadSavedPlans();plans.unshift(plan);savePlanRecords(plans);
+      recordSeedHistory(snapshot.seed,snapshot.lastCatId,'search');
+      $('plannerSaveStatus').textContent='已保存，可從 Seed 與規劃歷史點擊還原。';
+    }catch(e){$('plannerSaveStatus').textContent=e.message||String(e);}
+  }
+  function restoreSavedPlan(id){
+    try{
+      if(plannerBusy.classList.contains('active')) throw new Error('目前正在計算路徑，請計算完成後再還原。');
+      const plan=loadSavedPlans().find(p=>p.id===id);if(!plan) throw new Error('找不到保存規劃。');
+      const s=plan.snapshot;
+      // Validate using frozen pool data before replacing the current UI.
+      const oldData=battleData,oldManual=poolInput.value,oldMode=currentMode();
+      let route=[],node={cost:0,collected:0,parent:null};
+      try{
+        battleData=s.battleData;poolInput.value=s.manualPool;
+        document.querySelector(`input[name="dataMode"][value="${s.dataMode}"]`).checked=true;
+        let seed=s.seed,last=s.lastCatId;
+        for(const recipe of s.actions){
+          const event=s.battleData?.events.find(e=>e.key===s.eventKeys[recipe.panelIndex-1]);
+          const pool=s.dataMode==='gitlab'?poolFromEvent(event):parseManualPool(s.manualPool);
+          const entry={pool,panel:{index:recipe.panelIndex},key:s.eventKeys[recipe.panelIndex-1]||'manual',label:`表${recipe.panelIndex}`};
+          const a=recipe.type==='single'?simulatePlannerSingle(seed,last,entry):simulatePlannerGuaranteed(seed,last,entry);
+          if(!a||a.nextSeed!==recipe.nextSeed||a.acquired.map(c=>String(c.id)).join(',')!==recipe.ids.join(',')) throw new Error('保存的路徑資料無法驗證。');
+          route.push(a);seed=a.nextSeed;last=a.nextLastId;
+        }
+      }finally{battleData=oldData;poolInput.value=oldManual;document.querySelector(`input[name="dataMode"][value="${oldMode}"]`).checked=true;}
+      dataUpdateGeneration++;
+      battleData=s.battleData?{...oldData,...s.battleData,cats:{...oldData?.cats,...s.battleData.cats},gacha:{...oldData?.gacha,...s.battleData.gacha},events:[...(oldData?.events||[]).filter(e=>!s.eventKeys.includes(e.key)),...s.battleData.events.filter((e,i,all)=>all.findIndex(x=>x.key===e.key)===i)]}:oldData;poolInput.value=s.manualPool;
+      document.querySelector(`input[name="dataMode"][value="${s.dataMode}"]`).checked=true;
+      seedInput.value=String(s.seed);currentLastCatId=s.lastCatId;pastInput.value=s.past;futureInput.value=s.future;
+      plannerManualPicks.splice(0);plannerManualLastRoute=[];plannerSelectedIds.clear();
+      for(const p of panelStates){p.el.remove();p.eventMenu.remove();}panelStates.splice(0);
+      for(const key of s.eventKeys) createComparisonPanel(key);
+      syncMode();calculate();
+      for(const target of s.selectedIds) plannerSelectedIds.add(String(target));
+      renderPlannerCharacterList();
+      plannerOptimizationMode.value=s.optimizationMode;plannerLimitElevenEnabled.checked=s.limitEnabled;plannerMaxEleven.value=s.maxEleven;
+      syncPlannerElevenLimitUi();updatePlannerModeHint();
+      plannerManualEnabled.checked=s.manualEnabled;
+      plannerManualPicks.push(...s.manualPicks.map(p=>({...p})));
+      plannerHasSearched=true;
+      if(s.manualPicks.length&&!s.search){
+        plannerManualEnabled.checked=true;renderPlannerManualPreselect();plannerManualEnabled.checked=s.manualEnabled;
+      }
+      else{
+        for(const a of route){a.entry=plannerManualPanelEntry(a.entry.panel.index);}
+        plannerManualDecorateHits(route);
+        for(const a of route) node={parent:node,action:a,cost:node.cost+a.drawCost,collected:0};
+        node.collected=new Set(route.flatMap(a=>(a.hits||[]).map(h=>String(h.cat.id)))).size;
+        renderPlannerRoute({...s.search,node,startSeed:s.seed,startLast:s.lastCatId},plannerCharacters.filter(c=>plannerSelectedIds.has(c.id)),s.future,plannerPoolEntries());
+      }
+      plannerManualUpdateUi();setSettingsVisible(s.settingsVisible);setPlannerVisible(s.plannerVisible);
+      $('plannerSaveNote').value=plan.note||'';$('plannerSaveStatus').textContent='已還原保存的規劃與卡池表。';
+      saveSessionPrefs();saveRangePrefs();savePlannerPrefs();
+      requestAnimationFrame(()=>{panelStates.forEach((p,i)=>{p.tableWrap.scrollTop=s.tableScroll?.[i]?.top||0;p.tableWrap.scrollLeft=s.tableScroll?.[i]?.left||0;});});
+      setStatus('已還原保存的 Seed、卡池比較表與規劃路徑。','ok');
+    }catch(e){setStatus(`還原失敗：${esc(e.message||e)}`,'err');}
+  }
+  $('plannerSaveBtn').addEventListener('click',saveCurrentPlan);
+  seedHistoryList.addEventListener('click',e=>{
+    const b=e.target.closest('[data-plan-restore],[data-plan-delete],[data-plan-edit],[data-plan-note-save]');if(!b)return;
+    try{
+      if(b.dataset.planRestore){restoreSavedPlan(b.dataset.planRestore);return;}
+      const plans=loadSavedPlans();
+      if(b.dataset.planDelete){savePlanRecords(plans.filter(p=>p.id!==b.dataset.planDelete));renderSeedHistory();return;}
+      if(b.dataset.planEdit){b.closest('.seedHistoryItem').querySelector('[data-plan-editor]').classList.toggle('hidden');return;}
+      const p=plans.find(p=>p.id===b.dataset.planNoteSave);if(!p)return;
+      p.note=b.closest('[data-plan-editor]').querySelector('input').value.trim().slice(0,80);savePlanRecords(plans);renderSeedHistory();
+    }catch(err){setStatus(esc(err.message||err),'err');}
+  });
+
+  updatePlannerDrawSummary();
+  plannerManualUpdateUi();
   updatePlannerModeHint();
   loadRangePrefs();
   loadPlannerPrefs();
