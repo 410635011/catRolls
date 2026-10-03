@@ -627,6 +627,16 @@
   .savedPlanBadge{color:#2f607f;font-weight:800}
   .savedPlanNoteInput{width:100%;box-sizing:border-box;font-size:11px;margin-top:5px}
 </style>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#2f6781">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Seed Tracker">
+<link rel="icon" href="./favicon.ico" type="image/x-icon">
+<link rel="icon" type="image/png" sizes="32x32" href="./icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./icon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
 </head>
 <body>
 <div class="appBar">
@@ -1420,7 +1430,16 @@
       title.textContent=`${def.label} · ${items.length}`;
       group.appendChild(title);
       const expanded=panel.expandedEventGroups.has(def.key);
-      for(const item of (expanded ? items : items.slice(0,6))){
+      // 未開始分組收合時，顯示開始日期較早的前 6 筆；其他分組維持原本順序。
+      // 展開後仍沿用原本 items 順序顯示全部活動。
+      const collapsedItems = def.key==='future'
+        ? items.slice().sort((a,b)=>
+            String(a.start||'').localeCompare(String(b.start||'')) ||
+            String(a.end||'').localeCompare(String(b.end||'')) ||
+            String(a.key||'').localeCompare(String(b.key||''))
+          ).slice(0,6).reverse()
+        : items.slice(0,6);
+      for(const item of (expanded ? items : collapsedItems)){
         const btn=document.createElement('button');
         btn.type='button';
         btn.className='eventPickerItem '+def.key+(item.guaranteed?' hasGuaranteed':'');
@@ -3583,6 +3602,14 @@
     updateGitlabData();
   }
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch(err => console.warn('Service Worker 註冊失敗：', err));
+  });
+}
 </script>
 </body>
 </html>
