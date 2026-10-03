@@ -1,72 +1,82 @@
-const CACHE_VERSION = 'battle-cats-seed-tracker-pwa-v1';
+const CACHE_VERSION = 'battle-cats-seed-tracker-pwa-v2';
+const BASE = '/catRolls/';
+
 const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.json',
-  './favicon.ico',
-  './icon-16.png',
-  './icon-32.png',
-  './icon-64.png',
-  './icon-192.png',
-  './icon-512.png',
-  './apple-touch-icon.png'
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json',
+  BASE + 'favicon.ico',
+  BASE + 'icon-16.png',
+  BASE + 'icon-32.png',
+  BASE + 'icon-64.png',
+  BASE + 'icon-192.png',
+  BASE + 'icon-512.png',
+  BASE + 'apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then(cache => cache.addAll(APP_SHELL))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_VERSION);
+
+    // Cache files one-by-one so one missing optional asset cannot abort SW installation.
+    await Promise.allSettled(
+      APP_SHELL.map(url => cache.add(new Request(url, { cache: 'reload' })))
+    );
+  })());
+
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_VERSION)
-          .map(key => caches.delete(key))
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(key => key !== CACHE_VERSION)
+        .map(key => caches.delete(key))
+    );
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', event => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
+  const request = event.request;
+  if (request.method !== 'GET') return;
 
-  const url = new URL(req.url);
+  const url = new URL(request.url);
 
-  // GitLab / external data should always use the network.
-  // The app already stores parsed card-pool data in localStorage as its offline fallback.
-  if (url.origin !== self.location.origin) {
-    event.respondWith(fetch(req));
-    return;
-  }
+  // Keep GitLab and all other cross-origin data requests network-controlled.
+  if (url.origin !== self.location.origin) return;
 
-  // Navigation: network first, fall back to cached index.html when offline.
-  if (req.mode === 'navigate') {
+  // Only handle this GitHub Pages project.
+  if (!url.pathname.startsWith(BASE)) return;
+
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(req)
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then(cache => cache.put('./index.html', copy));
+      fetch(request)
+        .then(async response => {
+          if (response.ok) {
+            const cache = await caches.open(CACHE_VERSION);
+            cache.put(BASE + 'index.html', response.clone());
+          }
           return response;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(async () =>
+          (await caches.match(BASE + 'index.html')) ||
+          (await caches.match(BASE))
+        )
     );
     return;
   }
 
-  // Static local assets: cache first, then network and refresh cache.
   event.respondWith(
-    caches.match(req).then(cached => {
+    caches.match(request).then(cached => {
       if (cached) return cached;
-      return fetch(req).then(response => {
+
+      return fetch(request).then(async response => {
         if (response && response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then(cache => cache.put(req, copy));
+          const cache = await caches.open(CACHE_VERSION);
+          cache.put(request, response.clone());
         }
         return response;
       });

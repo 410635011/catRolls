@@ -1,25 +1,27 @@
 {
+  "id": "/catRolls/",
   "name": "Battle Cats Seed Tracker",
   "short_name": "Seed Tracker",
   "description": "Battle Cats Seed Tracker PWA",
-  "start_url": "./",
-  "scope": "./",
+  "lang": "zh-Hant",
+  "start_url": "/catRolls/",
+  "scope": "/catRolls/",
   "display": "standalone",
-  "orientation": "any",
   "background_color": "#f4f2ed",
   "theme_color": "#2f6781",
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "./icon-192.png",
+      "src": "/catRolls/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "./icon-512.png",
+      "src": "/catRolls/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

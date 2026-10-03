@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>貓戰種子碼自用 v49</title>
+<title>🐈 Battle Cats Seed Tracker v49</title>
 <style>
   :root{
     --bg:#f4f2ed;--card:#fffdf9;--text:#27343d;--muted:#78818a;--line:#dad7cf;
@@ -627,21 +627,38 @@
   .savedPlanBadge{color:#2f607f;font-weight:800}
   .savedPlanNoteInput{width:100%;box-sizing:border-box;font-size:11px;margin-top:5px}
 </style>
-<link rel="manifest" href="./manifest.json">
+<link rel="manifest" href="/catRolls/manifest.json">
 <meta name="theme-color" content="#2f6781">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Seed Tracker">
-<link rel="icon" href="./favicon.ico" type="image/x-icon">
-<link rel="icon" type="image/png" sizes="32x32" href="./icon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="./icon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<link rel="icon" href="/catRolls/favicon.ico" type="image/x-icon">
+<link rel="icon" type="image/png" sizes="32x32" href="/catRolls/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/catRolls/icon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/catRolls/apple-touch-icon.png">
+<script>
+window.__pwaDeferredPrompt = null;
+window.__pwaInstalled = false;
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  window.__pwaDeferredPrompt = event;
+  window.dispatchEvent(new CustomEvent('pwa-install-ready'));
+});
+
+window.addEventListener('appinstalled', () => {
+  window.__pwaInstalled = true;
+  window.__pwaDeferredPrompt = null;
+  window.dispatchEvent(new CustomEvent('pwa-installed'));
+});
+</script>
 </head>
 <body>
 <div class="appBar">
   <button class="settingsToggle" id="settingsToggle" type="button" aria-expanded="true">☰ <span>隱藏設定</span></button>
   <button class="settingsToggle" id="plannerToggle" type="button" aria-expanded="false">◎ <span>顯示收集規劃</span></button>
+  <button class="settingsToggle hidden" id="pwaInstallBtn" type="button" title="安裝成 Android App">⬇ <span>安裝 App</span></button>
   <div class="appTitle">Battle Cats Seed Tracker</div>
 </div>
 <div class="wrap">
@@ -3604,12 +3621,84 @@
 })();
 </script>
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
-      .catch(err => console.warn('Service Worker 註冊失敗：', err));
+(() => {
+  const installBtn = document.getElementById('pwaInstallBtn');
+
+  const isStandalone = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    document.referrer.startsWith('android-app://');
+
+  function refreshInstallButton() {
+    if (!installBtn) return;
+
+    if (isStandalone() || window.__pwaInstalled) {
+      installBtn.classList.add('hidden');
+      return;
+    }
+
+    if (window.__pwaDeferredPrompt) {
+      installBtn.classList.remove('hidden');
+      installBtn.disabled = false;
+      installBtn.querySelector('span').textContent = '安裝 App';
+      installBtn.title = '安裝 Battle Cats Seed Tracker';
+    } else {
+      installBtn.classList.add('hidden');
+    }
+  }
+
+  window.addEventListener('pwa-install-ready', refreshInstallButton);
+  window.addEventListener('pwa-installed', refreshInstallButton);
+  window.matchMedia('(display-mode: standalone)').addEventListener?.('change', refreshInstallButton);
+
+  installBtn?.addEventListener('click', async () => {
+    const promptEvent = window.__pwaDeferredPrompt;
+    if (!promptEvent) {
+      refreshInstallButton();
+      return;
+    }
+
+    installBtn.disabled = true;
+    installBtn.querySelector('span').textContent = '開啟安裝…';
+
+    try {
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+    } catch (err) {
+      console.warn('PWA 安裝提示失敗：', err);
+    } finally {
+      window.__pwaDeferredPrompt = null;
+      refreshInstallButton();
+    }
   });
-}
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register(
+          '/catRolls/service-worker.js',
+          { scope: '/catRolls/', updateViaCache: 'none' }
+        );
+        await reg.update().catch(() => {});
+        console.log('PWA Service Worker ready:', reg.scope);
+      } catch (err) {
+        console.warn('Service Worker 註冊失敗：', err);
+      }
+
+      // Useful console diagnostics for Android Chrome.
+      try {
+        const manifestRes = await fetch('/catRolls/manifest.json', { cache: 'no-store' });
+        console.log('PWA manifest HTTP:', manifestRes.status);
+      } catch (err) {
+        console.warn('PWA manifest 讀取失敗：', err);
+      }
+
+      refreshInstallButton();
+    });
+  } else {
+    refreshInstallButton();
+  }
+})();
 </script>
 </body>
 </html>
